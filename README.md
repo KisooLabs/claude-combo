@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="A VS Code QuickPick listing model + effort combos, and the picked combo shown in the status bar." width="820">
+  <img src="assets/hero.png" alt="A VS Code QuickPick listing model + effort combos, and the picked combo shown in the status bar." width="820">
 </p>
 
 <h1 align="center">Claude Combo</h1>
@@ -32,30 +32,58 @@ No build step, no dependencies — plain CommonJS, three files.
 
 ## Install
 
-The VS Code extensions folder is machine-local, so run this once per machine:
+You need VS Code (or Cursor) with the **Claude Code** extension already installed.
+Nothing else — no Node, no git, no build.
+
+### The easy way — 3 clicks, no terminal
+
+1. **Download the file.** Open the
+   [latest release](https://github.com/kisoolabs/claude-combo/releases/latest) and click
+   `claude-combo-0.0.1.vsix` under **Assets** to download it. (Your browser may ask you to
+   confirm the download — a `.vsix` is just a zip file VS Code knows how to open.)
+2. **Open the Extensions panel in VS Code.** Press `Ctrl+Shift+X`
+   (`Cmd+Shift+X` on Mac).
+3. **Install it.** Click the `…` button at the top of that panel →
+   **Install from VSIX…** → select the file you just downloaded (it is in your
+   `Downloads` folder).
+
+That's it. VS Code says *"Completed installing extension"*, and the status bar at the
+bottom right starts showing your current combo, e.g. `⚡ opus[1m] · medium`.
+If you don't see it, press `Ctrl+Shift+P` (`Cmd+Shift+P`), type
+`Developer: Reload Window`, and press Enter.
+
+The same three steps work in Cursor.
+
+To try it: press `Ctrl+Alt+M` (`Cmd+Alt+M` on Mac) — the QuickPick opens.
+
+### From source — for developers
+
+Only needed if you want to edit the code. Requires `git`.
+
+**Windows** — open PowerShell (press `Win+X`, choose **Terminal** or
+**Windows PowerShell**), then paste the three lines one at a time:
+
+```powershell
+git clone https://github.com/kisoolabs/claude-combo.git
+cd claude-combo
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+**Mac** — open Terminal (press `Cmd+Space`, type `Terminal`, press Enter):
 
 ```bash
 git clone https://github.com/kisoolabs/claude-combo.git
 cd claude-combo
-```
-
-**Windows** (add `-Cursor` to install into Cursor as well):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-**macOS / Linux** (add `--cursor` for Cursor):
-
-```bash
 bash ./install.sh
 ```
 
-Then in VS Code: `Ctrl+Shift+P` → `Developer: Reload Window`. The status bar should show
-`⚡ <model> · <effort>`, read from your real `~/.claude/settings.json`.
+Add `-Cursor` (Windows) or `--cursor` (Mac) to the last line to install into Cursor too.
+Then reload the window: `Ctrl+Shift+P` / `Cmd+Shift+P` → `Developer: Reload Window`.
 
-Step-by-step runbook, the update-after-editing loop, troubleshooting and uninstall:
-[INSTALL.md](INSTALL.md).
+Pick **one** of the two paths — both write to the same extension folder.
+
+The full runbook (each step with a check, what to do when a step fails, the
+edit → reinstall → reload loop, uninstall): [INSTALL.md](INSTALL.md).
 
 ## Hard limitation (by design, not a bug)
 

@@ -1,0 +1,2 @@
+# Built release artifact — lives on the GitHub release, not in the repo.
+*.vsix

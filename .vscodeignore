@@ -1,0 +1,12 @@
+# What NOT to ship inside the .vsix. The packaged extension is only the runtime files
+# plus the README/LICENSE shown on its details page.
+.git/**
+.gitignore
+.vscodeignore
+CLAUDE.md
+CLAUDE_CHANGELOG.md
+INSTALL.md
+install.ps1
+install.sh
+assets/hero.svg
+**/*.vsix
