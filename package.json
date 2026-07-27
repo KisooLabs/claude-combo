@@ -1,0 +1,131 @@
+{
+  "name": "claude-combo",
+  "displayName": "Claude Combo",
+  "description": "Pick a Claude Code model + effort combo from a customizable QuickPick, and apply it to the next conversation.",
+  "version": "0.0.1",
+  "publisher": "kisoo",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeCombo.pick",
+        "title": "Claude Combo: Pick model + effort"
+      },
+      {
+        "command": "claudeCombo.pickForWorkspace",
+        "title": "Claude Combo: Pick model + effort (this project only)"
+      },
+      {
+        "command": "claudeCombo.editPresets",
+        "title": "Claude Combo: Edit presets"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "claudeCombo.pick",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Combo",
+      "properties": {
+        "claudeCombo.presets": {
+          "type": "array",
+          "markdownDescription": "Model + effort combos shown in the QuickPick. Edit freely — order here is the order shown.\n\n- `model`: any value `claude --model` accepts (`fable`, `opus`, `sonnet`, `opus[1m]`, or a full model id).\n- `effort`: `low` | `medium` | `high` | `xhigh`.\n- `detail`: optional note shown under the label.",
+          "default": [
+            {
+              "label": "Fable · xhigh",
+              "model": "fable",
+              "effort": "xhigh",
+              "detail": "judgment — 설계 / 심사 / 논증"
+            },
+            {
+              "label": "Opus · high",
+              "model": "opus[1m]",
+              "effort": "high",
+              "detail": "execution — 어려운 구현"
+            },
+            {
+              "label": "Opus · medium",
+              "model": "opus[1m]",
+              "effort": "medium",
+              "detail": "execution — 기본"
+            },
+            {
+              "label": "Sonnet · low",
+              "model": "sonnet",
+              "effort": "low",
+              "detail": "mechanical — 스캔 / 배치"
+            }
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "model"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Shown in the QuickPick and the status bar. Defaults to \"<model> · <effort>\"."
+              },
+              "model": {
+                "type": "string",
+                "description": "Written to the settings.json \"model\" key."
+              },
+              "effort": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "xhigh"
+                ],
+                "description": "Written to the settings.json \"effortLevel\" key. Omit to leave effort untouched."
+              },
+              "detail": {
+                "type": "string",
+                "description": "Optional note shown under the label."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "claudeCombo.applyTarget": {
+          "type": "string",
+          "enum": [
+            "user",
+            "workspace"
+          ],
+          "enumDescriptions": [
+            "Write to ~/.claude/settings.json (applies everywhere).",
+            "Write to <project>/.claude/settings.json (applies to this project only, and overrides the user setting)."
+          ],
+          "default": "user",
+          "description": "Which settings.json the picked combo is written to."
+        },
+        "claudeCombo.openNewConversationAfterPick": {
+          "type": "boolean",
+          "default": true,
+          "description": "After picking, open a new Claude conversation (the combo only takes effect on a new conversation — a running session still needs /model and /effort)."
+        },
+        "claudeCombo.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the current combo in the status bar."
+        }
+      }
+    }
+  }
+}
