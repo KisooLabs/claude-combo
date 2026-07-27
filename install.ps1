@@ -1,8 +1,10 @@
 # Install claude-combo into the local VS Code (and optionally Cursor) extensions folder.
 # Extensions folders are machine-local (not Syncthing-synced), so run this once per machine.
 #
-#   powershell -ExecutionPolicy Bypass -File "C:\Users\kisoo\Sharing\Development\claude-combo\install.ps1"
+#   powershell -ExecutionPolicy Bypass -File "C:\Users\kisoo\Sharing\Development\Claude Combo Extension\install.ps1"
 #   powershell -ExecutionPolicy Bypass -File "...\install.ps1" -Cursor      # Cursor as well
+#
+# Re-run this after ANY edit to extension.js / package.json, then reload the window.
 #
 # ASCII-only on purpose (PowerShell 5.1 codepage).
 

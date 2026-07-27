@@ -70,10 +70,12 @@ still race this extension. The `.bak` is the mitigation; the race cannot be elim
 
 Extensions folders are machine-local (not Syncthing-synced), so install once per machine:
 
-- Windows: `powershell -ExecutionPolicy Bypass -File "C:\Users\kisoo\Sharing\Development\claude-combo\install.ps1"` (add `-Cursor` for Cursor too)
-- Mac: `bash "$HOME/Sharing/Development/claude-combo/install.sh"` (add `--cursor`)
+- Windows: `powershell -ExecutionPolicy Bypass -File "C:\Users\kisoo\Sharing\Development\Claude Combo Extension\install.ps1"` (add `-Cursor` for Cursor too)
+- Mac: `bash "/Users/kisookim/Sharing/Development/Claude Combo Extension/install.sh"` (add `--cursor`)
 
 Then `Developer: Reload Window`.
+
+Step-by-step runbook, update-after-edit loop, troubleshooting and uninstall: `INSTALL.md`.
 
 No build step — plain CommonJS, no dependencies, no bundler.
 

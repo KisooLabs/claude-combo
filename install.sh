@@ -2,8 +2,10 @@
 # Install claude-combo into the local VS Code (and optionally Cursor) extensions folder.
 # Extensions folders are machine-local (not Syncthing-synced), so run this once per machine.
 #
-#   bash "$HOME/Sharing/Development/claude-combo/install.sh"
-#   bash "$HOME/Sharing/Development/claude-combo/install.sh" --cursor
+#   bash "$HOME/Sharing/Development/Claude Combo Extension/install.sh"
+#   bash "$HOME/Sharing/Development/Claude Combo Extension/install.sh" --cursor
+#
+# Re-run this after ANY edit to extension.js / package.json, then reload the window.
 set -euo pipefail
 
 src="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
