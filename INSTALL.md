@@ -191,13 +191,6 @@ Every edit needs both:
 
 **Check:** the behavior you changed is visible. If not, you skipped one of the two.
 
-**Version bump pitfall:** the install scripts hardcode the folder id
-`kisoo.claude-combo-0.0.2`. If `package.json`'s `version` changes, update `$id` / `id` in
-both `install.ps1` and `install.sh`, **and** delete the old
-`kisoo.claude-combo-<oldversion>` folder — otherwise VS Code sees two copies of the same
-extension and loads an unpredictable one. A released `.vsix` must be rebuilt for the new
-version too (`npx @vscode/vsce package`).
-
 ---
 
 ## F. Troubleshooting
