@@ -24,7 +24,9 @@ README, and — if the one-line pitch changes — the `claude-combo` entry in
 | `install.ps1` / `install.sh` | Copy the files (+ `assets/`) into the machine-local extensions folder |
 | `INSTALL.md` | Human runbook (install / update / troubleshoot / uninstall) |
 | `README.md` | Public landing page: hero, install, feature + configuration reference |
-| `assets/hero.svg` | README hero — hand-authored QuickPick mock (site palette) |
+| `assets/hero.svg` | Source of the hero — hand-authored QuickPick mock (site palette) |
+| `assets/hero.png` | What the README actually references (see § Releases) |
+| `.vscodeignore` | What stays out of the `.vsix` (docs, install scripts, the SVG) |
 | `LICENSE` | MIT |
 
 ## Editing this project — non-negotiable loop
@@ -65,13 +67,39 @@ used to launch Claude, so a wrapper script could inject `--model` / `--effort`).
 undocumented whether the extension appends its args to the wrapper. Untested; do not
 build on it without an experiment.
 
+## Releases (the install path strangers use)
+
+`README.md` § Install leads with a no-terminal path: download the `.vsix` from the latest
+GitHub release → Extensions panel → `…` → *Install from VSIX…*. That path only works if a
+release with a matching asset exists, so a version bump that never gets packaged silently
+breaks the documented install.
+
+```
+npx --yes @vscode/vsce@latest package --out ./claude-combo-<version>.vsix
+code --install-extension ./claude-combo-<version>.vsix --force   # smoke test
+gh release create v<version> ./claude-combo-<version>.vsix --title ... --notes ...
+```
+
+Two constraints found the hard way:
+
+- **vsce rejects any SVG referenced from the README.** Hence `assets/hero.png`, generated
+  from `hero.svg` with headless Chrome (`--window-size=1000,420
+  --force-device-scale-factor=2 --screenshot=...` against the `file:///` SVG). Edit the
+  SVG, re-render the PNG — never hand-edit the PNG.
+- The `.vsix` is gitignored; the release asset is its only home.
+
+A VSIX install and an `install.ps1` install land in the *same* folder
+(`kisoo.claude-combo-<version>`), so they overwrite each other rather than coexisting.
+That is why README/INSTALL tell the reader to pick one path.
+
 ## Version bumps
 
 `install.ps1` / `install.sh` hardcode the target folder id
 (`kisoo.claude-combo-<version>`) to match `package.json`'s `version`. Bumping the
 version means editing all three, and deleting the previous
 `kisoo.claude-combo-<old>` folder on every machine — two copies of the same extension
-id make VS Code load an unpredictable one.
+id make VS Code load an unpredictable one. It also means a fresh `.vsix` + release
+(above) and updating the filename written in `README.md` / `INSTALL.md` § A Step 1.
 
 ## Commit scope
 
