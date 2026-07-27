@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" role="img" aria-label="Claude Combo — a VS Code QuickPick listing model and effort combos, with the picked combo shown in the status bar." font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <rect width="1000" height="420" fill="#FAFAF7"/>
+
+  <!-- QuickPick -->
+  <rect x="120" y="56" width="760" height="260" rx="12" fill="#FFFFFF" stroke="#1C1917" stroke-opacity=".12"/>
+
+  <!-- input row -->
+  <text x="148" y="88" font-size="16" fill="#A8A29E">Pick a model + effort combo</text>
+  <line x1="120" y1="108" x2="880" y2="108" stroke="#1C1917" stroke-opacity=".08"/>
+
+  <!-- selected row -->
+  <rect x="121" y="109" width="758" height="50" fill="#F1F0EC"/>
+  <rect x="121" y="109" width="3" height="50" fill="#0f76d6"/>
+  <text x="148" y="140" font-size="17" font-weight="600" fill="#1C1917">Fable · xhigh</text>
+  <text x="300" y="140" font-size="15" fill="#8A8580">judgment</text>
+
+  <text x="148" y="190" font-size="17" font-weight="600" fill="#1C1917">Opus · high</text>
+  <text x="300" y="190" font-size="15" fill="#8A8580">execution</text>
+
+  <text x="148" y="240" font-size="17" font-weight="600" fill="#1C1917">Opus · medium</text>
+  <text x="300" y="240" font-size="15" fill="#8A8580">execution — default</text>
+
+  <text x="148" y="290" font-size="17" font-weight="600" fill="#1C1917">Sonnet · low</text>
+  <text x="300" y="290" font-size="15" fill="#8A8580">mechanical</text>
+
+  <!-- status bar chip -->
+  <rect x="656" y="348" width="224" height="34" rx="17" fill="#FFFFFF" stroke="#1C1917" stroke-opacity=".12"/>
+  <path d="M683 358l-8 11h6l-2 9 8-11h-6z" fill="#0f76d6"/>
+  <text x="698" y="370" font-size="14" font-weight="500" fill="#57534E">opus[1m] · medium</text>
+</svg>

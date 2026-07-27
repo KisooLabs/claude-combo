@@ -1,14 +1,61 @@
-# Claude Combo
+<p align="center">
+  <img src="assets/hero.svg" alt="A VS Code QuickPick listing model + effort combos, and the picked combo shown in the status bar." width="820">
+</p>
 
-A tiny VS Code extension that turns "pick a model, then pick an effort level" into one
-QuickPick. Combos are defined in your own settings, not hardcoded here.
+<h1 align="center">Claude Combo</h1>
+
+<p align="center">
+  Pick a Claude Code <b>model + effort</b> combo in one keystroke —<br>
+  from a QuickPick you define yourself.
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#hard-limitation-by-design-not-a-bug">Limitation</a>
+</p>
+
+---
+
+Switching model in Claude Code resets effort to that model's default, so a real switch is
+always two steps: `/model`, then `/effort`. This is a ~200-line VS Code extension that
+makes it one.
 
 ## What it does
 
-1. Status bar shows the current combo (`⚡ Opus · medium`).
+1. The status bar shows your current combo (`⚡ opus[1m] · medium`).
 2. Click it — or press `Ctrl+Alt+M` (`Cmd+Alt+M` on Mac) — to open the QuickPick.
 3. Picking a combo writes the `model` and `effortLevel` keys into a Claude Code
    `settings.json`, then opens a new Claude conversation.
+
+No build step, no dependencies — plain CommonJS, three files.
+
+## Install
+
+The VS Code extensions folder is machine-local, so run this once per machine:
+
+```bash
+git clone https://github.com/kisoolabs/claude-combo.git
+cd claude-combo
+```
+
+**Windows** (add `-Cursor` to install into Cursor as well):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+**macOS / Linux** (add `--cursor` for Cursor):
+
+```bash
+bash ./install.sh
+```
+
+Then in VS Code: `Ctrl+Shift+P` → `Developer: Reload Window`. The status bar should show
+`⚡ <model> · <effort>`, read from your real `~/.claude/settings.json`.
+
+Step-by-step runbook, the update-after-editing loop, troubleshooting and uninstall:
+[INSTALL.md](INSTALL.md).
 
 ## Hard limitation (by design, not a bug)
 
@@ -16,9 +63,6 @@ QuickPick. Combos are defined in your own settings, not hardcoded here.
 The Claude Code VS Code extension exposes no command or API for changing the model or
 effort of a live session — its contributed commands are all open/new-conversation
 variants. A running session still needs `/model` + `/effort`.
-
-This matters because switching model first resets effort to that model's default, which
-is exactly the two-step dance this extension removes for new sessions.
 
 ## Configuration
 
@@ -40,7 +84,7 @@ is exactly the two-step dance this extension removes for new sessions.
   the CLI's `--effort max` has no persisted-settings equivalent). Omit to leave effort
   untouched.
 - Order in the array is the order in the QuickPick. Edit via the QuickPick's
-  "프리셋 편집…" entry or `Claude Combo: Edit presets`.
+  "프리셋 편집…" entry or the `Claude Combo: Edit presets` command.
 
 ### Apply target
 
@@ -66,22 +110,13 @@ lands via a temp file + rename.
 A live Claude session writing the same file (e.g. `/effort` persisting its choice) can
 still race this extension. The `.bak` is the mitigation; the race cannot be eliminated.
 
-## Install
-
-Extensions folders are machine-local (not Syncthing-synced), so install once per machine:
-
-- Windows: `powershell -ExecutionPolicy Bypass -File "C:\Users\kisoo\Sharing\Development\Claude Combo Extension\install.ps1"` (add `-Cursor` for Cursor too)
-- Mac: `bash "/Users/kisookim/Sharing/Development/Claude Combo Extension/install.sh"` (add `--cursor`)
-
-Then `Developer: Reload Window`.
-
-Step-by-step runbook, update-after-edit loop, troubleshooting and uninstall: `INSTALL.md`.
-
-No build step — plain CommonJS, no dependencies, no bundler.
-
 ## Alternatives considered
 
 - `claude --model X --effort Y` in a VS Code terminal profile — zero code, gives a
   dropdown of combos, but runs the terminal TUI instead of the native panel.
 - `.claude/settings.json` per project — zero code, no picker; this extension's
   `workspace` target is a one-click way to write exactly that.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

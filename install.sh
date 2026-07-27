@@ -18,9 +18,11 @@ fi
 
 for dst in "${targets[@]}"; do
   mkdir -p "$dst"
-  for f in package.json extension.js README.md; do
+  for f in package.json extension.js README.md LICENSE; do
     [ -f "$src/$f" ] && cp -f "$src/$f" "$dst/"
   done
+  # assets/ so the README hero image resolves in the extension details view
+  [ -d "$src/assets" ] && cp -Rf "$src/assets" "$dst/"
   echo "installed -> $dst"
 done
 

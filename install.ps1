@@ -15,7 +15,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $src = $PSScriptRoot
-$files = @('package.json', 'extension.js', 'README.md')
+$files = @('package.json', 'extension.js', 'README.md', 'LICENSE')
 $id = 'kisoo.claude-combo-0.0.1'
 
 $targets = @(Join-Path $env:USERPROFILE ".vscode\extensions\$id")
@@ -27,6 +27,9 @@ foreach ($dst in $targets) {
         $from = Join-Path $src $f
         if (Test-Path $from) { Copy-Item $from -Destination $dst -Force }
     }
+    # assets/ so the README hero image resolves in the extension details view
+    $assets = Join-Path $src 'assets'
+    if (Test-Path $assets) { Copy-Item $assets -Destination $dst -Recurse -Force }
     Write-Output "installed -> $dst"
 }
 

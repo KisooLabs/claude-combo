@@ -6,6 +6,11 @@
   "publisher": "kisoo",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kisoolabs/claude-combo.git"
+  },
+  "homepage": "https://github.com/kisoolabs/claude-combo#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
