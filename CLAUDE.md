@@ -40,7 +40,19 @@ Editing the source does **nothing** to the running editor. VS Code loads the *co
 A change reported as "done" without both steps is untested. Say which of the two you
 ran and which the owner still has to do.
 
-## Testing caution — this extension writes `~/.claude/settings.json`
+## The settings path is not `~/.claude` — it is `CLAUDE_CONFIG_DIR`
+
+Claude reads user settings from `$CLAUDE_CONFIG_DIR/settings.json` whenever that variable is
+set, and falls back to `~/.claude/settings.json` otherwise. claude-account-switcher launches
+each VS Code window with `CLAUDE_CONFIG_DIR=~/.claude-slots/<slot>/config`, and the variable
+is in the *window* environment, so the extension host sees it in `process.env`.
+
+0.0.1 hardcoded `~/.claude`, which made every pick a silent no-op in a switcher window while
+the status bar cheerfully reported the phantom value it had just written. Fixed in 0.0.2
+([extension.js:10](extension.js#L10)). Any future code that touches a Claude settings path
+resolves it the same way — never `os.homedir()/.claude` directly.
+
+## Testing caution — this extension writes the live Claude user settings
 
 That is the live Claude Code user settings file, including the settings of the session
 doing the testing. Before exercising a code path that writes:

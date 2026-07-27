@@ -5,6 +5,7 @@
 .vscodeignore
 CLAUDE.md
 CLAUDE_CHANGELOG.md
+TODO.md
 INSTALL.md
 install.ps1
 install.sh

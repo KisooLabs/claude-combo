@@ -9,7 +9,7 @@
 set -euo pipefail
 
 src="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-id="kisoo.claude-combo-0.0.1"
+id="kisoo.claude-combo-0.0.2"
 
 targets=("$HOME/.vscode/extensions/$id")
 if [ "${1:-}" = "--cursor" ]; then

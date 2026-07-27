@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 
 $src = $PSScriptRoot
 $files = @('package.json', 'extension.js', 'README.md', 'LICENSE')
-$id = 'kisoo.claude-combo-0.0.1'
+$id = 'kisoo.claude-combo-0.0.2'
 
 $targets = @(Join-Path $env:USERPROFILE ".vscode\extensions\$id")
 if ($Cursor) { $targets += Join-Path $env:USERPROFILE ".cursor\extensions\$id" }

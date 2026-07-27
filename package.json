@@ -2,7 +2,7 @@
   "name": "claude-combo",
   "displayName": "Claude Combo",
   "description": "Pick a Claude Code model + effort combo from a customizable QuickPick, and apply it to the next conversation.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "kisoo",
   "private": true,
   "license": "MIT",
@@ -54,25 +54,25 @@
               "label": "Fable · xhigh",
               "model": "fable",
               "effort": "xhigh",
-              "detail": "judgment — 설계 / 심사 / 논증"
+              "detail": "judgment — design / review / argument"
             },
             {
               "label": "Opus · high",
               "model": "opus[1m]",
               "effort": "high",
-              "detail": "execution — 어려운 구현"
+              "detail": "execution — hard implementation"
             },
             {
               "label": "Opus · medium",
               "model": "opus[1m]",
               "effort": "medium",
-              "detail": "execution — 기본"
+              "detail": "execution — the default"
             },
             {
               "label": "Sonnet · low",
               "model": "sonnet",
               "effort": "low",
-              "detail": "mechanical — 스캔 / 배치"
+              "detail": "mechanical — scans / batch work"
             }
           ],
           "items": {
@@ -114,7 +114,7 @@
             "workspace"
           ],
           "enumDescriptions": [
-            "Write to ~/.claude/settings.json (applies everywhere).",
+            "Write to the Claude user settings — CLAUDE_CONFIG_DIR/settings.json when that variable is set (account switchers), otherwise ~/.claude/settings.json. Applies everywhere.",
             "Write to <project>/.claude/settings.json (applies to this project only, and overrides the user setting)."
           ],
           "default": "user",

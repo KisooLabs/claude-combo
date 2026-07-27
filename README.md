@@ -39,7 +39,7 @@ Nothing else — no Node, no git, no build.
 
 1. **Download the file.** Open the
    [latest release](https://github.com/kisoolabs/claude-combo/releases/latest) and click
-   `claude-combo-0.0.1.vsix` under **Assets** to download it. (Your browser may ask you to
+   `claude-combo-0.0.2.vsix` under **Assets** to download it. (Your browser may ask you to
    confirm the download — a `.vsix` is just a zip file VS Code knows how to open.)
 2. **Open the Extensions panel in VS Code.** Press `Ctrl+Shift+X`
    (`Cmd+Shift+X` on Mac).
@@ -112,19 +112,24 @@ variants. A running session still needs `/model` + `/effort`.
   the CLI's `--effort max` has no persisted-settings equivalent). Omit to leave effort
   untouched.
 - Order in the array is the order in the QuickPick. Edit via the QuickPick's
-  "프리셋 편집…" entry or the `Claude Combo: Edit presets` command.
+  "Edit presets…" entry or the `Claude Combo: Edit presets` command.
 
 ### Apply target
 
 | `applyTarget` | Writes to | Effect |
 |---|---|---|
-| `user` | `~/.claude/settings.json` | Everywhere |
+| `user` | `$CLAUDE_CONFIG_DIR/settings.json`, else `~/.claude/settings.json` | Everywhere |
 | `workspace` | `<project>/.claude/settings.json` | This project only; overrides the user setting |
 
 `workspace` is the way to pin a per-project default (e.g. a judgment-tier project always
 opening on Fable). `Claude Combo: Pick model + effort (this project only)` forces the
 workspace target for a single pick without changing the setting. The QuickPick also has an
-inline "적용 대상 전환" entry.
+inline "Switch apply target" entry.
+
+**Account switchers:** Claude reads its user settings from `CLAUDE_CONFIG_DIR` whenever that
+variable is set, which is how tools like claude-account-switcher give each window its own
+account. This extension follows the same variable, so a pick lands in the settings file the
+window actually uses — not in a `~/.claude/settings.json` nothing reads.
 
 The status bar reflects `user` settings overlaid with the current project's, matching how
 Claude Code actually resolves them.

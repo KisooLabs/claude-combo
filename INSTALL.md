@@ -27,13 +27,13 @@ just redundant.
 
 **Step 1 — Download the file.**
 Open <https://github.com/kisoolabs/claude-combo/releases/latest> in your browser.
-Scroll to the **Assets** section and click `claude-combo-0.0.1.vsix`.
+Scroll to the **Assets** section and click `claude-combo-0.0.2.vsix`.
 It downloads like any other file, into your `Downloads` folder.
 
 If the browser asks whether to keep the file, keep it — a `.vsix` is a zip file that
 VS Code knows how to open.
 
-**Check:** the file `claude-combo-0.0.1.vsix` is in your Downloads folder.
+**Check:** the file `claude-combo-0.0.2.vsix` is in your Downloads folder.
 
 **Step 2 — Open the Extensions panel in VS Code.**
 Press `Ctrl+Shift+X` (Mac: `Cmd+Shift+X`). Or click the square-blocks icon in the left
@@ -50,7 +50,7 @@ Extensions*, *Check for Extension Updates*.
 
 **Step 4 — Click "Install from VSIX…" and pick the file.**
 A file dialog opens. Go to your `Downloads` folder, select
-`claude-combo-0.0.1.vsix`, and click **Install**.
+`claude-combo-0.0.2.vsix`, and click **Install**.
 
 **Check:** a notification appears at the bottom right: *"Completed installing extension"*.
 
@@ -114,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 Add ` -Cursor` at the end of that line if you want it in Cursor as well.
 
 **Check:** the output ends with
-`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.1`.
+`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.2`.
 If you got a red *execution policy* error instead, the `-ExecutionPolicy Bypass` part got
 lost — paste the whole line again.
 
@@ -161,7 +161,7 @@ bash ./install.sh
 Add ` --cursor` at the end for Cursor as well.
 
 **Check:** the output ends with
-`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.1`.
+`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.2`.
 
 **Step 5 — Reload VS Code.** `Cmd+Shift+P` → `Developer: Reload Window` → Enter.
 
@@ -192,7 +192,7 @@ Every edit needs both:
 **Check:** the behavior you changed is visible. If not, you skipped one of the two.
 
 **Version bump pitfall:** the install scripts hardcode the folder id
-`kisoo.claude-combo-0.0.1`. If `package.json`'s `version` changes, update `$id` / `id` in
+`kisoo.claude-combo-0.0.2`. If `package.json`'s `version` changes, update `$id` / `id` in
 both `install.ps1` and `install.sh`, **and** delete the old
 `kisoo.claude-combo-<oldversion>` folder — otherwise VS Code sees two copies of the same
 extension and loads an unpredictable one. A released `.vsix` must be rebuilt for the new
@@ -217,6 +217,13 @@ The file it writes may be read-only or missing. Check that `~/.claude/settings.j
 exists and is writable — on Windows that is `C:\Users\<you>\.claude\settings.json`. An
 error message naming the exact path appears in this case.
 
+**The pick seems to apply, but the new conversation runs a different model.**
+Hover the status bar item: the tooltip names the exact file being written. If your window
+was launched by an account switcher, that path is a per-account slot
+(`~/.claude-slots/<slot>/config/settings.json`) rather than `~/.claude/` — that is correct,
+because `CLAUDE_CONFIG_DIR` is where Claude itself reads from. Versions before 0.0.2 always
+wrote `~/.claude/settings.json` and so had no effect in such a window.
+
 **The status bar shows a combo I didn't pick.**
 It shows your user settings overlaid with the current project's
 `.claude/settings.json` — a project-level file wins. That is correct behavior; it matches
@@ -238,13 +245,13 @@ back over `settings.json`.
 Windows:
 
 ```
-powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.1'"
+powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.2'"
 ```
 
 Mac:
 
 ```
-rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.1"
+rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.2"
 ```
 
 Then `Developer: Reload Window`.

@@ -3,7 +3,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const USER_SETTINGS = path.join(os.homedir(), '.claude', 'settings.json');
+// Claude reads its user settings from CLAUDE_CONFIG_DIR when that is set — which is how
+// claude-account-switcher gives each window its own account slot
+// (~/.claude-slots/<slot>/config). Hardcoding ~/.claude made every pick a no-op in such a
+// window, and made the status bar report a combo no session was actually running.
+const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const USER_SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
 const VALID_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
 
 /** @type {vscode.StatusBarItem | undefined} */
@@ -38,7 +43,7 @@ function targetPath(forceWorkspace) {
   const p = workspaceSettingsPath();
   if (!p) {
     vscode.window.showWarningMessage(
-      'Claude Combo: 열린 워크스페이스 폴더가 없어 user settings에 적용합니다.'
+      'Claude Combo: no workspace folder is open — applying to the user settings instead.'
     );
     return USER_SETTINGS;
   }
@@ -52,13 +57,13 @@ function readSettings(p) {
     return JSON.parse(txt);
   } catch (e) {
     if (e && e.code === 'ENOENT') return {};
-    throw new Error(`${p} 읽기/파싱 실패: ${e.message}`);
+    throw new Error(`could not read/parse ${p}: ${e.message}`);
   }
 }
 
-// read-modify-write: 두 키만 갈아끼우고 나머지 키·순서는 그대로 둔다.
-// 실행 중인 Claude 세션이 /effort 등으로 같은 파일을 쓰는 경합은 완전히 막을 수 없어
-// 덮어쓰기 직전 상태를 .bak 한 개로 남긴다.
+// read-modify-write: only the two keys change; every other key and the key order survive.
+// A running Claude session writing the same file (e.g. /effort persisting its choice) can
+// still race this, so the state just before each overwrite is kept as a single .bak.
 function writeSettings(p, obj) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   if (fs.existsSync(p)) {
@@ -73,7 +78,7 @@ function writeSettings(p, obj) {
   fs.renameSync(tmp, p);
 }
 
-/** Claude Code의 실제 해석 순서(user < project)를 그대로 흉내낸 현재 값. */
+/** Current value, resolved the way Claude Code itself resolves it (user < project). */
 function effectiveCombo() {
   let merged = {};
   try {
@@ -109,12 +114,12 @@ function refreshStatusBar() {
   const target = cfg().get('applyTarget') === 'workspace' ? workspaceSettingsPath() : USER_SETTINGS;
   statusItem.tooltip = new vscode.MarkdownString(
     [
-      '**Claude Combo** — 클릭해서 모델 + effort 선택',
+      '**Claude Combo** — click to pick a model + effort combo',
       '',
-      `- 현재: \`${cur.model || 'default'}\` · \`${cur.effortLevel || 'default'}\``,
-      `- 적용 대상: \`${target || '(워크스페이스 없음)'}\``,
+      `- Current: \`${cur.model || 'default'}\` · \`${cur.effortLevel || 'default'}\``,
+      `- Writes to: \`${target || '(no workspace folder)'}\``,
       '',
-      '선택은 **새 대화**부터 적용됩니다. 진행 중인 세션은 `/model` + `/effort`가 필요합니다.',
+      'A pick applies to the **next** conversation. A running session still needs `/model` + `/effort`.',
     ].join('\n')
   );
   statusItem.show();
@@ -128,7 +133,7 @@ async function openNewConversation() {
       await vscode.commands.executeCommand(cmd);
       return true;
     } catch (e) {
-      console.warn(`claude-combo: ${cmd} 실행 실패`, e);
+      console.warn(`claude-combo: ${cmd} failed`, e);
     }
   }
   return false;
@@ -137,7 +142,7 @@ async function openNewConversation() {
 async function applyPreset(preset, forceWorkspace) {
   if (preset.effort && !VALID_EFFORTS.includes(preset.effort)) {
     vscode.window.showErrorMessage(
-      `Claude Combo: effort "${preset.effort}"는 허용되지 않습니다 (${VALID_EFFORTS.join(', ')}). 프리셋을 고쳐주세요.`
+      `Claude Combo: effort "${preset.effort}" is not allowed (${VALID_EFFORTS.join(', ')}). Fix the preset.`
     );
     return;
   }
@@ -157,7 +162,7 @@ async function applyPreset(preset, forceWorkspace) {
   try {
     writeSettings(p, settings);
   } catch (e) {
-    vscode.window.showErrorMessage(`Claude Combo: ${p} 쓰기 실패 — ${e.message}`);
+    vscode.window.showErrorMessage(`Claude Combo: could not write ${p} — ${e.message}`);
     return;
   }
 
@@ -165,7 +170,7 @@ async function applyPreset(preset, forceWorkspace) {
 
   const opened = cfg().get('openNewConversationAfterPick') ? await openNewConversation() : false;
   const where = p === USER_SETTINGS ? 'user' : 'project';
-  const tail = opened ? '새 대화에 적용됨.' : '다음 새 대화부터 적용됩니다.';
+  const tail = opened ? 'applied to the new conversation.' : 'applies to the next new conversation.';
   vscode.window.setStatusBarMessage(
     `Claude Combo → ${presetLabel(preset)} (${where}) — ${tail}`,
     6000
@@ -176,8 +181,8 @@ async function pick(forceWorkspace) {
   const list = presets();
   if (list.length === 0) {
     const choice = await vscode.window.showWarningMessage(
-      'Claude Combo: 프리셋이 비어 있습니다.',
-      '프리셋 편집'
+      'Claude Combo: the preset list is empty.',
+      'Edit presets'
     );
     if (choice) await editPresets();
     return;
@@ -193,21 +198,24 @@ async function pick(forceWorkspace) {
 
   items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
   items.push({
-    label: '$(gear) 프리셋 편집…',
-    detail: 'settings.json의 claudeCombo.presets 열기',
+    label: '$(gear) Edit presets…',
+    detail: 'Open claudeCombo.presets in settings.json',
     _action: 'edit',
   });
   const target = cfg().get('applyTarget') || 'user';
   items.push({
-    label: '$(arrow-swap) 적용 대상 전환',
-    description: `현재: ${target}`,
-    detail: target === 'user' ? 'workspace(이 프로젝트 전용)로 전환' : 'user(전역)로 전환',
+    label: '$(arrow-swap) Switch apply target',
+    description: `currently: ${target}`,
+    detail:
+      target === 'user'
+        ? 'Switch to workspace (this project only)'
+        : 'Switch to user (everywhere)',
     _action: 'toggleTarget',
   });
 
   const picked = await vscode.window.showQuickPick(items, {
-    title: `Claude Combo — 적용 대상: ${forceWorkspace ? 'workspace (이번만)' : target}`,
-    placeHolder: '모델 + effort 콤보 선택 (새 대화부터 적용)',
+    title: `Claude Combo — writes to: ${forceWorkspace ? 'workspace (this pick only)' : target}`,
+    placeHolder: 'Pick a model + effort combo (applies to the next conversation)',
     matchOnDescription: true,
     matchOnDetail: true,
   });
@@ -232,7 +240,8 @@ async function editPresets() {
 function watchFile(p) {
   if (!p || watched.has(p)) return;
   watched.add(p);
-  // ~/.claude 는 워크스페이스 밖이라 FileSystemWatcher가 닿지 않는다. 폴링으로 처리.
+  // The Claude config dir sits outside the workspace, where FileSystemWatcher can't reach.
+  // Poll instead.
   fs.watchFile(p, { interval: 3000 }, refreshStatusBar);
 }
 
