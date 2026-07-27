@@ -4,9 +4,16 @@
 
 A ~200-line VS Code extension (plain CommonJS, no deps, no build) that replaces the
 `/model` + `/effort` two-step with one QuickPick, applied to the **next** Claude
-conversation. Owner-built for personal use; not published to any marketplace.
+conversation. Owner-built for personal use; **public on GitHub** at
+`https://github.com/kisoolabs/claude-combo` (MIT) and listed on the portfolio site
+`kisoolabs.github.io` — but not published to any marketplace.
 
 Read `README.md` for the feature surface and `INSTALL.md` for the per-machine runbook.
+
+Because the repo is public and the README is the landing page, an edit that changes
+behavior or configuration has three follow-ups, not one: reinstall + reload (below),
+README, and — if the one-line pitch changes — the `claude-combo` entry in
+`kisoolabs.github.io/data/site.json` (then `python tools/build_site.py` there).
 
 ## Layout
 
@@ -14,9 +21,11 @@ Read `README.md` for the feature surface and `INSTALL.md` for the per-machine ru
 |---|---|
 | `extension.js` | Everything: status bar, QuickPick, settings read-modify-write |
 | `package.json` | Manifest — the `claudeCombo.presets` schema/defaults live here |
-| `install.ps1` / `install.sh` | Copy the three files into the machine-local extensions folder |
+| `install.ps1` / `install.sh` | Copy the files (+ `assets/`) into the machine-local extensions folder |
 | `INSTALL.md` | Human runbook (install / update / troubleshoot / uninstall) |
-| `README.md` | Feature + configuration reference |
+| `README.md` | Public landing page: hero, install, feature + configuration reference |
+| `assets/hero.svg` | README hero — hand-authored QuickPick mock (site palette) |
+| `LICENSE` | MIT |
 
 ## Editing this project — non-negotiable loop
 
