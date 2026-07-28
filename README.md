@@ -39,7 +39,7 @@ Nothing else — no Node, no git, no build.
 
 1. **Download the file.** Open the
    [latest release](https://github.com/kisoolabs/claude-combo/releases/latest) and click
-   `claude-combo-0.0.3.vsix` under **Assets** to download it. (Your browser may ask you to
+   `claude-combo-0.0.4.vsix` under **Assets** to download it. (Your browser may ask you to
    confirm the download — a `.vsix` is just a zip file VS Code knows how to open.)
 2. **Open the Extensions panel in VS Code.** Press `Ctrl+Shift+X`
    (`Cmd+Shift+X` on Mac).
@@ -114,6 +114,12 @@ variants. A running session still needs `/model` + `/effort`.
   untouched.
 - Order in the array is the order in the QuickPick. Edit via the QuickPick's
   "Edit presets…" entry or the `Claude Combo: Edit presets` command.
+- **Save the file (`Ctrl+S`) when you are done.** VS Code applies an unsaved `settings.json`
+  in the window you are editing in, so a new preset appears in *that* QuickPick while every
+  other window still reads the old list off disk — it looks like the edit worked and
+  silently didn't. While a settings file is dirty the QuickPick carries a
+  `$(warning) Unsaved settings.json` row that saves it for you. This is a VS Code setting,
+  independent of `applyTarget` below.
 
 ### Apply target
 

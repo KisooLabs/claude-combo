@@ -127,6 +127,21 @@ function describeTargets(forceWorkspace, paths) {
   return 'project';
 }
 
+/**
+ * Settings files open with unsaved edits. VS Code applies a dirty settings.json's content
+ * in the window doing the editing, but other windows only ever see the file on disk — so an
+ * unsaved preset edit looks applied to its author and is invisible everywhere else. Twice
+ * mistaken for a bug, hence the warning.
+ */
+function dirtySettingsDocs() {
+  return vscode.workspace.textDocuments.filter((d) => {
+    if (!d.isDirty) return false;
+    if (path.posix.basename(d.uri.path) !== 'settings.json') return false;
+    // user settings open as vscode-userdata:, workspace settings as file:.../.vscode/
+    return d.uri.scheme === 'vscode-userdata' || d.uri.path.includes('/.vscode/');
+  });
+}
+
 function readSettings(p) {
   try {
     const txt = fs.readFileSync(p, 'utf8');
@@ -269,10 +284,11 @@ async function applyPreset(preset, forceWorkspace) {
   const opened = cfg().get('openNewConversationAfterPick') ? await openNewConversation() : false;
   const where = describeTargets(forceWorkspace, paths);
   const tail = opened ? 'applied to the new conversation.' : 'applies to the next new conversation.';
-  vscode.window.setStatusBarMessage(
-    `Claude Combo → ${presetLabel(preset)} (${where}) — ${tail}`,
-    6000
-  );
+  const msg = `Claude Combo → ${presetLabel(preset)} (${where}) — ${tail}`;
+  // A fan-out touched every account on the machine; that deserves a receipt that survives a
+  // hidden status bar (workbench.statusBar.visible: false swallows setStatusBarMessage).
+  if (paths.length > 1) vscode.window.showInformationMessage(msg);
+  else vscode.window.setStatusBarMessage(msg, 6000);
 }
 
 async function pick(forceWorkspace) {
@@ -293,6 +309,19 @@ async function pick(forceWorkspace) {
     detail: p.detail,
     _preset: p,
   }));
+
+  const dirty = dirtySettingsDocs();
+  if (dirty.length) {
+    items.unshift(
+      {
+        label: '$(warning) Unsaved settings.json — press Ctrl+S there',
+        description: 'until it is saved, preset edits apply to THIS window only',
+        detail: `Select to save now: ${dirty.map((d) => d.uri.fsPath).join(', ')}`,
+        _action: 'saveSettings',
+      },
+      { label: '', kind: vscode.QuickPickItemKind.Separator }
+    );
+  }
 
   items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
   items.push({
@@ -319,6 +348,23 @@ async function pick(forceWorkspace) {
   });
   if (!picked) return;
 
+  if (picked._action === 'saveSettings') {
+    const saved = [];
+    for (const d of dirty) {
+      try {
+        if (await d.save()) saved.push(d.uri.fsPath);
+      } catch (e) {
+        console.warn('claude-combo:', e);
+      }
+    }
+    vscode.window.showInformationMessage(
+      saved.length
+        ? `Claude Combo: saved ${saved.length} settings file${saved.length === 1 ? '' : 's'} — your other windows have the presets now.`
+        : 'Claude Combo: could not save the settings file. Press Ctrl+S in its tab.'
+    );
+    refreshStatusBar();
+    return pick(forceWorkspace);
+  }
   if (picked._action === 'edit') return editPresets();
   if (picked._action === 'toggleTarget') {
     await cfg().update('applyTarget', next, vscode.ConfigurationTarget.Global);
@@ -332,6 +378,11 @@ async function editPresets() {
   await vscode.commands.executeCommand('workbench.action.openSettingsJson', {
     revealSetting: { key: 'claudeCombo.presets', edit: true },
   });
+  // Said up front because the failure is silent: the editing window honours the unsaved
+  // buffer, so nothing looks wrong until another window shows a stale list.
+  vscode.window.showInformationMessage(
+    'Claude Combo: press Ctrl+S when done — an unsaved settings.json applies to this window only.'
+  );
 }
 
 function watchFile(p) {

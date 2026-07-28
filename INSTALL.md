@@ -27,13 +27,13 @@ just redundant.
 
 **Step 1 — Download the file.**
 Open <https://github.com/kisoolabs/claude-combo/releases/latest> in your browser.
-Scroll to the **Assets** section and click `claude-combo-0.0.3.vsix`.
+Scroll to the **Assets** section and click `claude-combo-0.0.4.vsix`.
 It downloads like any other file, into your `Downloads` folder.
 
 If the browser asks whether to keep the file, keep it — a `.vsix` is a zip file that
 VS Code knows how to open.
 
-**Check:** the file `claude-combo-0.0.3.vsix` is in your Downloads folder.
+**Check:** the file `claude-combo-0.0.4.vsix` is in your Downloads folder.
 
 **Step 2 — Open the Extensions panel in VS Code.**
 Press `Ctrl+Shift+X` (Mac: `Cmd+Shift+X`). Or click the square-blocks icon in the left
@@ -50,7 +50,7 @@ Extensions*, *Check for Extension Updates*.
 
 **Step 4 — Click "Install from VSIX…" and pick the file.**
 A file dialog opens. Go to your `Downloads` folder, select
-`claude-combo-0.0.3.vsix`, and click **Install**.
+`claude-combo-0.0.4.vsix`, and click **Install**.
 
 **Check:** a notification appears at the bottom right: *"Completed installing extension"*.
 
@@ -114,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 Add ` -Cursor` at the end of that line if you want it in Cursor as well.
 
 **Check:** the output ends with
-`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.3`.
+`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.4`.
 If you got a red *execution policy* error instead, the `-ExecutionPolicy Bypass` part got
 lost — paste the whole line again.
 
@@ -161,7 +161,7 @@ bash ./install.sh
 Add ` --cursor` at the end for Cursor as well.
 
 **Check:** the output ends with
-`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.3`.
+`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.4`.
 
 **Step 5 — Reload VS Code.** `Cmd+Shift+P` → `Developer: Reload Window` → Enter.
 
@@ -175,6 +175,17 @@ The list is yours — the extension ships four defaults and nothing is hardcoded
 
 `Ctrl+Shift+P` (Mac: `Cmd+Shift+P`) → `Claude Combo: Edit presets` → the settings editor
 opens at `claudeCombo.presets`. The same entry is at the bottom of the QuickPick itself.
+
+**Then press `Ctrl+S`.** This is the one step people miss. The window you are editing in
+honours the *unsaved* text immediately, so your new combo shows up in its QuickPick and
+everything looks finished — but every other window reads the file on disk and keeps the old
+list. Saving propagates it at once, with no reload.
+
+The extension nags you about exactly this: leave the file unsaved and the QuickPick grows a
+`$(warning) Unsaved settings.json` row at the top, which saves the file when you select it.
+The user settings file is `%APPDATA%\Code\User\settings.json` on Windows
+(`~/Library/Application Support/Code/User/settings.json` on Mac); VS Code shows its tab as a
+plain `settings.json`, so hover the tab if you are unsure which file you are in.
 
 Field-by-field reference: README.md § Configuration.
 
@@ -258,11 +269,17 @@ and Claude replaces the home one with it rather than merging. Switch the apply t
 **all slots** — § E.
 
 **My preset list only exists in one window.**
-Different cause, same symptom shape. Presets live in the *VS Code* settings, which other
-windows pick up from the file on disk — so an unsaved `settings.json` tab applies in that
-window alone. Press `Ctrl+S` in it; the other windows update immediately, no reload. If it
-is still window-local after saving, you edited the **Workspace** tab of the settings editor
-instead of the User tab.
+Different cause, same symptom shape — and note `applyTarget` has nothing to do with it:
+that setting only chooses which *Claude* settings file a picked combo is written to, while
+the preset list is a *VS Code* setting in a different file entirely.
+
+Other windows read that file from disk, so an unsaved `settings.json` tab applies in the
+editing window alone. Press `Ctrl+S` in it (`%APPDATA%\Code\User\settings.json` on Windows)
+— the other windows update immediately, no reload. Since 0.0.4 the QuickPick shows a
+`$(warning) Unsaved settings.json` row while this is the case; selecting it saves the file.
+
+If it is still window-local after saving, you edited the **Workspace** tab of the settings
+editor instead of the User tab.
 
 **The status bar shows a combo I didn't pick.**
 It shows your user settings overlaid with the current project's
@@ -285,13 +302,13 @@ back over `settings.json`.
 Windows:
 
 ```
-powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.3'"
+powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.4'"
 ```
 
 Mac:
 
 ```
-rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.3"
+rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.4"
 ```
 
 Then `Developer: Reload Window`.
@@ -322,8 +339,8 @@ A version bump renames the target folder, so after updating also delete the prev
 two copies of the same extension id make VS Code load an unpredictable one:
 
 ```
-powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.2'"
+powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.3'"
 ```
 
-Installed as of 2026-07-28: **Home (Windows)** — VS Code only, 0.0.3.
+Installed as of 2026-07-28: **Home (Windows)** — VS Code only, 0.0.4.
 Pending: Office (Windows), Macbook.

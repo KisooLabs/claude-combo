@@ -2,7 +2,7 @@
   "name": "claude-combo",
   "displayName": "Claude Combo",
   "description": "Pick a Claude Code model + effort combo from a customizable QuickPick, and apply it to the next conversation.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "kisoo",
   "private": true,
   "license": "MIT",

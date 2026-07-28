@@ -1,5 +1,7 @@
 # CLAUDE.md Changelog — Claude Combo Extension
 
+- 2026-07-28: § "Two silent-feedback traps" added — an unsaved settings.json applies only in its own window (mistaken for an extension bug twice, 0.0.4 warns + offers to save), and `workbench.statusBar.visible: false` on the owner's machine swallows `setStatusBarMessage`, so confirmations that matter must be notifications.
+
 - 2026-07-28: § `CLAUDE_CONFIG_DIR` extended — verified that a slot config *replaces* `~/.claude` instead of merging, so "global" cannot mean writing the home file; records 0.0.3's `allSlots` fan-out (keyed on `config/`, independent per-file writes) and the two accepted costs (cross-account model mismatch, race surface widened to every slot).
 
 - 2026-07-27: § "The settings path is not `~/.claude`" added (0.0.2 bug) — every Claude settings path resolves through `CLAUDE_CONFIG_DIR` first, because account switchers put each window on its own slot config; hardcoding the home path made picks silent no-ops.

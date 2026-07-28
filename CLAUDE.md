@@ -80,6 +80,23 @@ doing the testing. Before exercising a code path that writes:
   a lost keystroke, not corruption, and file locking on a Syncthing-adjacent path is
   worse than the disease.
 
+## Two silent-feedback traps this extension has to work around
+
+**An unsaved `settings.json` applies in its own window.** VS Code honours the dirty buffer
+locally but only ever ships the file on disk to other windows, so an edited-not-saved preset
+list looks applied to its author and is invisible everywhere else. The owner hit this twice
+(2026-07-27, 2026-07-28) and both times read it as an extension bug; the second time the
+`applyTarget` setting got blamed, which governs something else entirely. 0.0.4 answers it:
+`dirtySettingsDocs()` + a `$(warning)` row at the top of the QuickPick that saves the file
+when selected, and a hint right after `Edit presets…` opens the editor. Any future
+"why didn't my setting take" report starts by checking the file's mtime on disk.
+
+**`setStatusBarMessage` is invisible here.** The owner's VS Code sets
+`workbench.statusBar.visible: false`, which swallows both the status bar item and every
+`setStatusBarMessage`. So a confirmation that matters must be a `showInformationMessage` —
+that is why an `allSlots` pick (a 186-file write) reports through a notification while a
+single-file pick still uses the quiet channel.
+
 ## Known limit — do not try to "fix" it
 
 The picked combo applies only to a **new** conversation. `anthropic.claude-code`
