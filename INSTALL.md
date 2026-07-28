@@ -27,13 +27,13 @@ just redundant.
 
 **Step 1 — Download the file.**
 Open <https://github.com/kisoolabs/claude-combo/releases/latest> in your browser.
-Scroll to the **Assets** section and click `claude-combo-0.0.2.vsix`.
+Scroll to the **Assets** section and click `claude-combo-0.0.3.vsix`.
 It downloads like any other file, into your `Downloads` folder.
 
 If the browser asks whether to keep the file, keep it — a `.vsix` is a zip file that
 VS Code knows how to open.
 
-**Check:** the file `claude-combo-0.0.2.vsix` is in your Downloads folder.
+**Check:** the file `claude-combo-0.0.3.vsix` is in your Downloads folder.
 
 **Step 2 — Open the Extensions panel in VS Code.**
 Press `Ctrl+Shift+X` (Mac: `Cmd+Shift+X`). Or click the square-blocks icon in the left
@@ -50,7 +50,7 @@ Extensions*, *Check for Extension Updates*.
 
 **Step 4 — Click "Install from VSIX…" and pick the file.**
 A file dialog opens. Go to your `Downloads` folder, select
-`claude-combo-0.0.2.vsix`, and click **Install**.
+`claude-combo-0.0.3.vsix`, and click **Install**.
 
 **Check:** a notification appears at the bottom right: *"Completed installing extension"*.
 
@@ -114,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 Add ` -Cursor` at the end of that line if you want it in Cursor as well.
 
 **Check:** the output ends with
-`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.2`.
+`installed -> C:\Users\<you>\.vscode\extensions\kisoo.claude-combo-0.0.3`.
 If you got a red *execution policy* error instead, the `-ExecutionPolicy Bypass` part got
 lost — paste the whole line again.
 
@@ -161,7 +161,7 @@ bash ./install.sh
 Add ` --cursor` at the end for Cursor as well.
 
 **Check:** the output ends with
-`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.2`.
+`installed -> /Users/<you>/.vscode/extensions/kisoo.claude-combo-0.0.3`.
 
 **Step 5 — Reload VS Code.** `Cmd+Shift+P` → `Developer: Reload Window` → Enter.
 
@@ -180,7 +180,42 @@ Field-by-field reference: README.md § Configuration.
 
 ---
 
-## E. Update after editing the source
+## E. Make one pick apply to every window
+
+Skip this unless you use an account switcher (a tool that launches VS Code windows pinned
+to different Claude accounts). If you don't, the default already applies everywhere.
+
+By default a pick is written to the Claude config **the current window uses**. A switcher
+gives each window its own config folder, and Claude *replaces* the home config with it
+rather than merging the two — so a pick made in one window genuinely does not reach a
+window pinned to a different account.
+
+To make one pick hold across all of them:
+
+`Ctrl+Alt+M` (Mac: `Cmd+Alt+M`) → at the bottom of the list choose
+**Switch apply target** until it reads `currently: all slots`. Then pick a combo.
+
+**Check:** the confirmation along the bottom reads
+`Claude Combo → <your combo> (global + N slots)` with N greater than 0. Hovering the status
+bar item names the home settings file plus the slot count.
+
+What it does: writes the same `model` / `effortLevel` into `~/.claude/settings.json` and
+into every slot's own `settings.json`. Nothing else in those files is touched.
+
+Two consequences worth knowing:
+
+- Slots belong to **different accounts**. A model one account can't use gets written to its
+  slot anyway, and that account's next conversation will refuse it. Pick a combo every
+  account can run.
+- One pick now writes every slot, so it can overwrite an effort a *live* session in another
+  account just set with `/effort`. Every file still gets its `.bak` (see § G).
+
+The setting behind it is `claudeCombo.applyTarget: "allSlots"`; `claudeCombo.slotsRoot`
+overrides the auto-detected vault folder if your switcher keeps it somewhere unusual.
+
+---
+
+## F. Update after editing the source
 
 Only relevant to § B / § C. Editing `extension.js` or `package.json` in your clone does
 **nothing** on its own — the running VS Code loads the *copy* under `.vscode/extensions`.
@@ -193,7 +228,7 @@ Every edit needs both:
 
 ---
 
-## F. Troubleshooting
+## G. Troubleshooting
 
 **No status bar item after installing.**
 Reload the window first (`Developer: Reload Window`). Still nothing:
@@ -217,6 +252,18 @@ was launched by an account switcher, that path is a per-account slot
 because `CLAUDE_CONFIG_DIR` is where Claude itself reads from. Versions before 0.0.2 always
 wrote `~/.claude/settings.json` and so had no effect in such a window.
 
+**A pick applies in the window I made it in, but not in my other windows.**
+Expected if an account switcher launched them: each window has its own Claude config folder
+and Claude replaces the home one with it rather than merging. Switch the apply target to
+**all slots** — § E.
+
+**My preset list only exists in one window.**
+Different cause, same symptom shape. Presets live in the *VS Code* settings, which other
+windows pick up from the file on disk — so an unsaved `settings.json` tab applies in that
+window alone. Press `Ctrl+S` in it; the other windows update immediately, no reload. If it
+is still window-local after saving, you edited the **Workspace** tab of the settings editor
+instead of the User tab.
+
 **The status bar shows a combo I didn't pick.**
 It shows your user settings overlaid with the current project's
 `.claude/settings.json` — a project-level file wins. That is correct behavior; it matches
@@ -228,7 +275,7 @@ back over `settings.json`.
 
 ---
 
-## G. Uninstall
+## H. Uninstall
 
 **From the .vsix install (§ A):** Extensions panel (`Ctrl+Shift+X`) → search
 `Claude Combo` → gear icon → **Uninstall**.
@@ -238,13 +285,13 @@ back over `settings.json`.
 Windows:
 
 ```
-powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.2'"
+powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.3'"
 ```
 
 Mac:
 
 ```
-rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.2"
+rm -rf "$HOME/.vscode/extensions/kisoo.claude-combo-0.0.3"
 ```
 
 Then `Developer: Reload Window`.
@@ -254,7 +301,7 @@ into `settings.json` stay as they are — uninstalling changes no Claude setting
 
 ---
 
-## H. Owner's machines (copy-paste-ready)
+## I. Owner's machines (copy-paste-ready)
 
 The source folder is Syncthing-synced; only the installed copy is machine-local, so the
 installer is re-run per machine and after every source edit.
@@ -271,5 +318,12 @@ Macbook:
 bash "/Users/kisookim/Sharing/Development/Claude Combo Extension/install.sh"
 ```
 
-Installed as of 2026-07-27: **Home (Windows)** — VS Code only.
+A version bump renames the target folder, so after updating also delete the previous one —
+two copies of the same extension id make VS Code load an unpredictable one:
+
+```
+powershell -NoProfile -Command "Remove-Item -Recurse -Force '$env:USERPROFILE\.vscode\extensions\kisoo.claude-combo-0.0.2'"
+```
+
+Installed as of 2026-07-28: **Home (Windows)** — VS Code only, 0.0.3.
 Pending: Office (Windows), Macbook.

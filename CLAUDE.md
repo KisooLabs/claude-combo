@@ -49,8 +49,23 @@ is in the *window* environment, so the extension host sees it in `process.env`.
 
 0.0.1 hardcoded `~/.claude`, which made every pick a silent no-op in a switcher window while
 the status bar cheerfully reported the phantom value it had just written. Fixed in 0.0.2
-([extension.js:10](extension.js#L10)). Any future code that touches a Claude settings path
+([extension.js:14](extension.js#L14)). Any future code that touches a Claude settings path
 resolves it the same way — never `os.homedir()/.claude` directly.
+
+**It replaces, it does not merge.** Verified on Home 2026-07-28: a slot's
+`config/settings.json` held only the LaunchPad heartbeat hooks, yet the session running on
+that slot had auto-memory *on* while `~/.claude/settings.json` says `autoMemoryEnabled:
+false`. So the home file contributes nothing to a pinned window. The consequence is
+structural, not a bug: a pick can only ever be per-window, and "make it global" cannot mean
+"write `~/.claude`" — that is the 0.0.1 mistake wearing a different hat.
+
+0.0.3 answers it with `applyTarget: "allSlots"`, which fans the two keys out to
+`~/.claude/settings.json` *and* every `<slotsRoot>/*/config/settings.json` (185 of 187 slots
+on Home). Slots are keyed on the `config/` directory rather than an existing settings file,
+so a fresh vault is pinned too. Writes are independent — one unreadable slot is reported and
+skipped, never aborting the rest. Two costs the owner accepted knowingly: a model gets
+written into slots whose account may not have it, and the documented `/effort` write race now
+spans every account at once (the `.bak` per file remains the only mitigation; no locking).
 
 ## Testing caution — this extension writes the live Claude user settings
 

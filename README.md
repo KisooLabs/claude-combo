@@ -39,7 +39,7 @@ Nothing else — no Node, no git, no build.
 
 1. **Download the file.** Open the
    [latest release](https://github.com/kisoolabs/claude-combo/releases/latest) and click
-   `claude-combo-0.0.2.vsix` under **Assets** to download it. (Your browser may ask you to
+   `claude-combo-0.0.3.vsix` under **Assets** to download it. (Your browser may ask you to
    confirm the download — a `.vsix` is just a zip file VS Code knows how to open.)
 2. **Open the Extensions panel in VS Code.** Press `Ctrl+Shift+X`
    (`Cmd+Shift+X` on Mac).
@@ -101,7 +101,8 @@ variants. A running session still needs `/model` + `/effort`.
   { "label": "Opus · medium", "model": "opus[1m]", "effort": "medium", "detail": "execution" },
   { "label": "Sonnet · low",  "model": "sonnet",   "effort": "low",    "detail": "mechanical" }
 ],
-"claudeCombo.applyTarget": "user",                  // "user" | "workspace"
+"claudeCombo.applyTarget": "user",                  // "user" | "workspace" | "allSlots"
+"claudeCombo.slotsRoot": "",                        // "" = auto-detect; allSlots only
 "claudeCombo.openNewConversationAfterPick": true,
 "claudeCombo.showStatusBarItem": true
 ```
@@ -118,18 +119,31 @@ variants. A running session still needs `/model` + `/effort`.
 
 | `applyTarget` | Writes to | Effect |
 |---|---|---|
-| `user` | `$CLAUDE_CONFIG_DIR/settings.json`, else `~/.claude/settings.json` | Everywhere |
+| `user` | `$CLAUDE_CONFIG_DIR/settings.json`, else `~/.claude/settings.json` | This window's Claude config |
 | `workspace` | `<project>/.claude/settings.json` | This project only; overrides the user setting |
+| `allSlots` | `~/.claude/settings.json` **and** every `<slotsRoot>/*/config/settings.json` | Every window, whichever account slot it was launched on |
 
 `workspace` is the way to pin a per-project default (e.g. a judgment-tier project always
 opening on Fable). `Claude Combo: Pick model + effort (this project only)` forces the
 workspace target for a single pick without changing the setting. The QuickPick also has an
-inline "Switch apply target" entry.
+inline "Switch apply target" entry, cycling `user` → `workspace` → `allSlots`.
 
 **Account switchers:** Claude reads its user settings from `CLAUDE_CONFIG_DIR` whenever that
 variable is set, which is how tools like claude-account-switcher give each window its own
 account. This extension follows the same variable, so a pick lands in the settings file the
 window actually uses — not in a `~/.claude/settings.json` nothing reads.
+
+That also means `user` is *per window*: `CLAUDE_CONFIG_DIR` **replaces** `~/.claude` rather
+than layering over it, so a pick made in one slot-pinned window has no effect on a window
+pinned to a different slot. `allSlots` is the answer to that — it writes the same two keys
+into `~/.claude/settings.json` and into each slot's own `settings.json`, so the combo holds
+everywhere. Each file is read-modify-written, so a slot's own hooks and settings survive.
+`slotsRoot` defaults to two levels up from this window's `CLAUDE_CONFIG_DIR` (i.e. the
+switcher's vault root), falling back to `~/.claude-slots`.
+
+Two things to know before turning `allSlots` on: slots belong to *different accounts*, so a
+model one account cannot use will still be written into its slot; and the write race below
+now spans every slot, including live sessions of other accounts.
 
 The status bar reflects `user` settings overlaid with the current project's, matching how
 Claude Code actually resolves them.
@@ -142,6 +156,11 @@ lands via a temp file + rename.
 
 A live Claude session writing the same file (e.g. `/effort` persisting its choice) can
 still race this extension. The `.bak` is the mitigation; the race cannot be eliminated.
+
+With `allSlots` the guarantee is per file and unchanged — but one pick now writes (and backs
+up) every slot, so the race surface is every account at once. Files are written
+independently: one unreadable slot is reported and skipped, it does not cost the others
+their write.
 
 ## Alternatives considered
 

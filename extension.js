@@ -7,9 +7,18 @@ const path = require('path');
 // claude-account-switcher gives each window its own account slot
 // (~/.claude-slots/<slot>/config). Hardcoding ~/.claude made every pick a no-op in such a
 // window, and made the status bar report a combo no session was actually running.
-const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const HOME = os.homedir();
+const GLOBAL_SETTINGS = path.join(HOME, '.claude', 'settings.json');
+const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(HOME, '.claude');
 const USER_SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
 const VALID_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
+const TARGETS = ['user', 'workspace', 'allSlots'];
+const TARGET_LABEL = { user: 'user', workspace: 'workspace', allSlots: 'all slots' };
+const TARGET_BLURB = {
+  user: "this window's Claude config only",
+  workspace: 'this project only',
+  allSlots: 'global + every account slot',
+};
 
 /** @type {vscode.StatusBarItem | undefined} */
 let statusItem;
@@ -37,17 +46,85 @@ function workspaceSettingsPath() {
   return path.join(folders[0].uri.fsPath, '.claude', 'settings.json');
 }
 
-function targetPath(forceWorkspace) {
-  const target = forceWorkspace ? 'workspace' : cfg().get('applyTarget') || 'user';
-  if (target !== 'workspace') return USER_SETTINGS;
-  const p = workspaceSettingsPath();
-  if (!p) {
+function activeTarget(forceWorkspace) {
+  if (forceWorkspace) return 'workspace';
+  const t = cfg().get('applyTarget');
+  return TARGETS.includes(t) ? t : 'user';
+}
+
+/**
+ * Root that holds the account switcher's per-account vaults. A vault is
+ * `<root>/<slot>/config`, and this window's CLAUDE_CONFIG_DIR *is* one of them, so the
+ * root is two levels up from it. Falls back to the switcher's default location.
+ */
+function slotsRoot() {
+  const configured = String(cfg().get('slotsRoot') || '').trim();
+  if (configured) return configured.replace(/^~(?=[/\\]|$)/, HOME);
+  const pinned = process.env.CLAUDE_CONFIG_DIR;
+  if (pinned && path.basename(pinned) === 'config') {
+    return path.dirname(path.dirname(pinned));
+  }
+  return path.join(HOME, '.claude-slots');
+}
+
+/**
+ * `<root>/<slot>/config/settings.json` for every slot that has a `config/` directory.
+ * Keyed on the directory, not the file, so a vault that has not written settings yet is
+ * still pinned; a non-vault entry under the root (a stray file, a `sessions/` dir) has no
+ * `config/` and is skipped. Missing root → no slots, no error.
+ */
+function slotSettingsPaths() {
+  const root = slotsRoot();
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch (e) {
+    if (!e || e.code !== 'ENOENT') console.warn('claude-combo: could not read', root, e);
+    return [];
+  }
+  const out = [];
+  for (const d of entries) {
+    if (!d.isDirectory()) continue;
+    const dir = path.join(root, d.name, 'config');
+    try {
+      if (fs.statSync(dir).isDirectory()) out.push(path.join(dir, 'settings.json'));
+    } catch {
+      // no config/ — not a vault
+    }
+  }
+  return out;
+}
+
+/**
+ * Every file one pick writes. More than one only for `allSlots`: CLAUDE_CONFIG_DIR
+ * *replaces* ~/.claude rather than layering over it, so a combo that is meant to hold
+ * across account slots has to be written into each slot's own settings.json.
+ */
+function targetPaths(forceWorkspace) {
+  const target = activeTarget(forceWorkspace);
+  if (target === 'workspace') {
+    const p = workspaceSettingsPath();
+    if (p) return [p];
     vscode.window.showWarningMessage(
       'Claude Combo: no workspace folder is open — applying to the user settings instead.'
     );
-    return USER_SETTINGS;
+    return [USER_SETTINGS];
   }
-  return p;
+  if (target === 'allSlots') {
+    // USER_SETTINGS last: a vault living outside the slots root would otherwise be missed.
+    return [...new Set([GLOBAL_SETTINGS, ...slotSettingsPaths(), USER_SETTINGS])];
+  }
+  return [USER_SETTINGS];
+}
+
+function describeTargets(forceWorkspace, paths) {
+  const target = activeTarget(forceWorkspace);
+  if (target === 'allSlots') {
+    const slots = paths.filter((p) => p !== GLOBAL_SETTINGS).length;
+    return `global + ${slots} slot${slots === 1 ? '' : 's'}`;
+  }
+  if (paths[0] === USER_SETTINGS) return 'user';
+  return 'project';
 }
 
 function readSettings(p) {
@@ -111,13 +188,22 @@ function refreshStatusBar() {
     ? presetLabel(match)
     : `${cur.model || 'default'} · ${cur.effortLevel || 'default'}`;
   statusItem.text = `$(zap) ${label}`;
-  const target = cfg().get('applyTarget') === 'workspace' ? workspaceSettingsPath() : USER_SETTINGS;
+  const target = activeTarget(false);
+  let writesTo;
+  if (target === 'allSlots') {
+    const slots = slotSettingsPaths().length;
+    writesTo = `\`${GLOBAL_SETTINGS}\` + ${slots} slot config${slots === 1 ? '' : 's'} under \`${slotsRoot()}\``;
+  } else if (target === 'workspace') {
+    writesTo = `\`${workspaceSettingsPath() || '(no workspace folder)'}\``;
+  } else {
+    writesTo = `\`${USER_SETTINGS}\``;
+  }
   statusItem.tooltip = new vscode.MarkdownString(
     [
       '**Claude Combo** — click to pick a model + effort combo',
       '',
       `- Current: \`${cur.model || 'default'}\` · \`${cur.effortLevel || 'default'}\``,
-      `- Writes to: \`${target || '(no workspace folder)'}\``,
+      `- Writes to: ${writesTo}`,
       '',
       'A pick applies to the **next** conversation. A running session still needs `/model` + `/effort`.',
     ].join('\n')
@@ -147,29 +233,41 @@ async function applyPreset(preset, forceWorkspace) {
     return;
   }
 
-  const p = targetPath(forceWorkspace);
-  let settings;
-  try {
-    settings = readSettings(p);
-  } catch (e) {
-    vscode.window.showErrorMessage(`Claude Combo: ${e.message}`);
-    return;
+  const paths = targetPaths(forceWorkspace);
+  // Each file is independent: one unreadable slot must not cost the other 180 their write.
+  let written = 0;
+  /** @type {string[]} */
+  const failed = [];
+  for (const p of paths) {
+    try {
+      const settings = readSettings(p);
+      settings.model = preset.model;
+      if (preset.effort) settings.effortLevel = preset.effort;
+      writeSettings(p, settings);
+      written++;
+    } catch (e) {
+      console.warn('claude-combo:', e);
+      failed.push(`${p} — ${e.message}`);
+    }
   }
 
-  settings.model = preset.model;
-  if (preset.effort) settings.effortLevel = preset.effort;
-
-  try {
-    writeSettings(p, settings);
-  } catch (e) {
-    vscode.window.showErrorMessage(`Claude Combo: could not write ${p} — ${e.message}`);
+  if (written === 0) {
+    vscode.window.showErrorMessage(
+      `Claude Combo: nothing was written. ${failed[0] || 'no target file resolved.'}`
+    );
     return;
   }
 
   refreshStatusBar();
 
+  if (failed.length) {
+    vscode.window.showWarningMessage(
+      `Claude Combo: wrote ${written} file${written === 1 ? '' : 's'}, ${failed.length} failed. First: ${failed[0]}`
+    );
+  }
+
   const opened = cfg().get('openNewConversationAfterPick') ? await openNewConversation() : false;
-  const where = p === USER_SETTINGS ? 'user' : 'project';
+  const where = describeTargets(forceWorkspace, paths);
   const tail = opened ? 'applied to the new conversation.' : 'applies to the next new conversation.';
   vscode.window.setStatusBarMessage(
     `Claude Combo → ${presetLabel(preset)} (${where}) — ${tail}`,
@@ -202,19 +300,19 @@ async function pick(forceWorkspace) {
     detail: 'Open claudeCombo.presets in settings.json',
     _action: 'edit',
   });
-  const target = cfg().get('applyTarget') || 'user';
+  const target = activeTarget(false);
+  const next = TARGETS[(TARGETS.indexOf(target) + 1) % TARGETS.length];
   items.push({
     label: '$(arrow-swap) Switch apply target',
-    description: `currently: ${target}`,
-    detail:
-      target === 'user'
-        ? 'Switch to workspace (this project only)'
-        : 'Switch to user (everywhere)',
+    description: `currently: ${TARGET_LABEL[target]}`,
+    detail: `Switch to ${TARGET_LABEL[next]} (${TARGET_BLURB[next]})`,
     _action: 'toggleTarget',
   });
 
   const picked = await vscode.window.showQuickPick(items, {
-    title: `Claude Combo — writes to: ${forceWorkspace ? 'workspace (this pick only)' : target}`,
+    title: `Claude Combo — writes to: ${
+      forceWorkspace ? 'workspace (this pick only)' : TARGET_LABEL[target]
+    }`,
     placeHolder: 'Pick a model + effort combo (applies to the next conversation)',
     matchOnDescription: true,
     matchOnDetail: true,
@@ -223,7 +321,6 @@ async function pick(forceWorkspace) {
 
   if (picked._action === 'edit') return editPresets();
   if (picked._action === 'toggleTarget') {
-    const next = target === 'user' ? 'workspace' : 'user';
     await cfg().update('applyTarget', next, vscode.ConfigurationTarget.Global);
     refreshStatusBar();
     return pick(forceWorkspace);

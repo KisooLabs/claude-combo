@@ -2,7 +2,7 @@
   "name": "claude-combo",
   "displayName": "Claude Combo",
   "description": "Pick a Claude Code model + effort combo from a customizable QuickPick, and apply it to the next conversation.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "kisoo",
   "private": true,
   "license": "MIT",
@@ -111,14 +111,21 @@
           "type": "string",
           "enum": [
             "user",
-            "workspace"
+            "workspace",
+            "allSlots"
           ],
           "enumDescriptions": [
-            "Write to the Claude user settings — CLAUDE_CONFIG_DIR/settings.json when that variable is set (account switchers), otherwise ~/.claude/settings.json. Applies everywhere.",
-            "Write to <project>/.claude/settings.json (applies to this project only, and overrides the user setting)."
+            "Write to the Claude user settings — CLAUDE_CONFIG_DIR/settings.json when that variable is set (account switchers), otherwise ~/.claude/settings.json. Applies to this window's Claude config only.",
+            "Write to <project>/.claude/settings.json (applies to this project only, and overrides the user setting).",
+            "Write to ~/.claude/settings.json AND every account-switcher slot (<slotsRoot>/*/config/settings.json). CLAUDE_CONFIG_DIR replaces ~/.claude rather than layering over it, so this is what makes one pick hold across every window regardless of which account slot it was launched on. Only the model and effortLevel keys are touched in each file; each slot's own hooks and settings survive."
           ],
           "default": "user",
-          "description": "Which settings.json the picked combo is written to."
+          "description": "Which settings.json files the picked combo is written to."
+        },
+        "claudeCombo.slotsRoot": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Folder holding the account switcher's per-account vaults, each of which is `<slotsRoot>/<slot>/config`. Only used by `applyTarget: allSlots`. Leave empty to auto-detect: two levels up from `CLAUDE_CONFIG_DIR` when this window is slot-pinned, otherwise `~/.claude-slots`."
         },
         "claudeCombo.openNewConversationAfterPick": {
           "type": "boolean",
