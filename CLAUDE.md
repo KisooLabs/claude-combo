@@ -80,16 +80,38 @@ doing the testing. Before exercising a code path that writes:
   a lost keystroke, not corruption, and file locking on a Syncthing-adjacent path is
   worse than the disease.
 
+## VS Code settings are per window here too — `--user-data-dir`
+
+The same trap as `CLAUDE_CONFIG_DIR`, one layer up, and it cost two wrong diagnoses on
+2026-07-28 before anyone looked at the right file. claude-account-switcher's launcher
+(`Development/claude-account-switcher/launcher/Core.cs:157`) starts every window with
+`--user-data-dir=<slot>/vscode-ud`, so **VS Code user settings are per account slot**:
+`C:\Users\kisoo\.claude-slots\<slot>\vscode-ud\User\settings.json`, not
+`%APPDATA%\Code\User\settings.json`. A preset list edited in one window is invisible in a
+window on another slot, forever, no matter how often it is saved. Extensions are *not*
+per-slot (no `vscode-ud/extensions`; `--user-data-dir` alone does not move the extensions
+folder), which is why the extension loads everywhere and only its settings diverge.
+
+Before diagnosing any "setting didn't take", read `process.env.CLAUDE_CONFIG_DIR` **and**
+find the settings.json the window actually uses. Reading `%APPDATA%` and concluding "the
+edit was never saved" is the mistake that was made here; the edit was saved, to a file that
+was never checked.
+
+0.0.5 answers it with `claudeCombo.sharedConfigFile` — one JSON file outside every
+user-data-dir (default `~/.claude-combo/config.json`) carrying `presets` / `applyTarget` /
+`slotsRoot`. When it exists it wins over the VS Code settings, `Edit presets…` opens it, and
+the apply-target toggle writes back to it. `Claude Combo: Share presets with every window`
+creates it from whatever presets the window currently has.
+
 ## Two silent-feedback traps this extension has to work around
 
-**An unsaved `settings.json` applies in its own window.** VS Code honours the dirty buffer
+**An unsaved settings file applies in its own window.** VS Code honours the dirty buffer
 locally but only ever ships the file on disk to other windows, so an edited-not-saved preset
-list looks applied to its author and is invisible everywhere else. The owner hit this twice
-(2026-07-27, 2026-07-28) and both times read it as an extension bug; the second time the
-`applyTarget` setting got blamed, which governs something else entirely. 0.0.4 answers it:
-`dirtySettingsDocs()` + a `$(warning)` row at the top of the QuickPick that saves the file
-when selected, and a hint right after `Edit presets…` opens the editor. Any future
-"why didn't my setting take" report starts by checking the file's mtime on disk.
+list looks applied to its author and is invisible everywhere else. Real, but note it was
+*wrongly* blamed for the 2026-07-28 cross-window report above — a genuine per-file check
+(mtime, content) must come before naming it. 0.0.4 added `dirtySettingsDocs()` + a
+`$(warning)` row at the top of the QuickPick that saves the file when selected, plus a hint
+when `Edit presets…` opens the editor.
 
 **`setStatusBarMessage` is invisible here.** The owner's VS Code sets
 `workbench.statusBar.visible: false`, which swallows both the status bar item and every

@@ -2,19 +2,19 @@
 
 ## Now
 
-- [ ] Verify 0.0.4 after the owner reloads the window. (a) With the presets tab still
-      unsaved, `Ctrl+Alt+M` shows the `$(warning) Unsaved settings.json` row and selecting
-      it saves the file — then `%APPDATA%\Code\User\settings.json` gains `claudeCombo.presets`
-      and another window's QuickPick shows the added combo. (b) **Switch apply target** to
-      `currently: all slots` → pick a combo → expect a *notification* reading
-      `Claude Combo → <combo> (global + 185 slots)`, then confirm a differently pinned
-      window's next conversation starts on it.
+- [ ] Verify 0.0.5 after the owner reloads two windows on *different* slots. (a) Both
+      QuickPicks list the same 6 English presets and the tooltip says they come from
+      `C:\Users\kisoo\.claude-combo\config.json`. (b) Edit that file, save, and confirm the
+      other window sees the change with no reload. (c) **Switch apply target** writes back
+      into `config.json` (not a slot's settings.json). (d) An `allSlots` pick notifies
+      `(global + 185 slots)` and a differently pinned window's next conversation starts on it.
 
 ## Next
 
-- [ ] Install 0.0.4 on the other machines (Office Windows, Macbook) — `.vsix` from the
-      release or the install script; delete any leftover `kisoo.claude-combo-0.0.2/0.0.3`
-      folder there first.
+- [ ] Install 0.0.5 on the other machines (Office Windows, Macbook) — `.vsix` from the
+      release or the install script; delete any leftover `kisoo.claude-combo-0.0.2/3/4`
+      folder there first. `~/.claude-combo/config.json` is machine-local (not synced), so
+      copy it or re-run `Claude Combo: Share presets with every window` there.
 
 ## Blocked
 
@@ -29,6 +29,12 @@
 
 ## Done (recent)
 
+- 2026-07-28 0.0.5: `claudeCombo.sharedConfigFile` — presets/applyTarget/slotsRoot read from
+  one file outside every `--user-data-dir` (default `~/.claude-combo/config.json`), because
+  the switcher gives each slot its own VS Code settings. `Share presets with every window`
+  command seeds it; `Edit presets…` and the target toggle follow it. Also: the English preset
+  list + `applyTarget: allSlots` fanned out to all 184 existing settings files (183 slots +
+  the non-switcher default), all Korean `detail` strings gone.
 - 2026-07-28 0.0.4: unsaved-settings warning — the QuickPick gains a `$(warning)` row (and a
   one-click save) while any settings.json is dirty, plus a hint when `Edit presets…` opens
   the editor, because VS Code applies a dirty settings.json in its own window only. `allSlots`

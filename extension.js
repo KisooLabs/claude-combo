@@ -9,6 +9,7 @@ const path = require('path');
 // window, and made the status bar report a combo no session was actually running.
 const HOME = os.homedir();
 const GLOBAL_SETTINGS = path.join(HOME, '.claude', 'settings.json');
+const DEFAULT_SHARED_CONFIG = path.join(HOME, '.claude-combo', 'config.json');
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(HOME, '.claude');
 const USER_SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
 const VALID_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
@@ -29,8 +30,45 @@ function cfg() {
   return vscode.workspace.getConfiguration('claudeCombo');
 }
 
+function expandHome(p) {
+  return String(p).replace(/^~(?=[/\\]|$)/, HOME);
+}
+
+function sharedConfigPath() {
+  const configured = String(cfg().get('sharedConfigFile') || '').trim();
+  return configured ? expandHome(configured) : DEFAULT_SHARED_CONFIG;
+}
+
+/**
+ * The one file every window can agree on. VS Code *settings* cannot play this role: an
+ * account switcher gives each window its own `--user-data-dir`, so `claudeCombo.presets`
+ * edited in one window is invisible to a window on another slot — the same shape of trap as
+ * CLAUDE_CONFIG_DIR, one layer up. A plain file outside every user-data-dir is immune.
+ *
+ * Accepts an array (presets only) or `{ presets, applyTarget, slotsRoot }`. Absent → null,
+ * which is not an error; unparseable → error, and the caller falls back to the settings.
+ * @returns {{ config: object | null, error: string | null, path: string }}
+ */
+function sharedConfig() {
+  const p = sharedConfigPath();
+  try {
+    const txt = fs.readFileSync(p, 'utf8');
+    if (!txt.trim()) return { config: null, error: null, path: p };
+    const parsed = JSON.parse(txt);
+    if (Array.isArray(parsed)) return { config: { presets: parsed }, error: null, path: p };
+    if (!parsed || typeof parsed !== 'object') {
+      return { config: null, error: 'expected an object or an array', path: p };
+    }
+    return { config: parsed, error: null, path: p };
+  } catch (e) {
+    if (e && e.code === 'ENOENT') return { config: null, error: null, path: p };
+    return { config: null, error: e.message, path: p };
+  }
+}
+
 function presets() {
-  const raw = cfg().get('presets');
+  const shared = sharedConfig().config;
+  const raw = shared && Array.isArray(shared.presets) ? shared.presets : cfg().get('presets');
   if (!Array.isArray(raw)) return [];
   return raw.filter((p) => p && typeof p.model === 'string' && p.model.trim());
 }
@@ -48,7 +86,8 @@ function workspaceSettingsPath() {
 
 function activeTarget(forceWorkspace) {
   if (forceWorkspace) return 'workspace';
-  const t = cfg().get('applyTarget');
+  const shared = sharedConfig().config;
+  const t = (shared && shared.applyTarget) || cfg().get('applyTarget');
   return TARGETS.includes(t) ? t : 'user';
 }
 
@@ -58,8 +97,9 @@ function activeTarget(forceWorkspace) {
  * root is two levels up from it. Falls back to the switcher's default location.
  */
 function slotsRoot() {
-  const configured = String(cfg().get('slotsRoot') || '').trim();
-  if (configured) return configured.replace(/^~(?=[/\\]|$)/, HOME);
+  const shared = sharedConfig().config;
+  const configured = String((shared && shared.slotsRoot) || cfg().get('slotsRoot') || '').trim();
+  if (configured) return expandHome(configured);
   const pinned = process.env.CLAUDE_CONFIG_DIR;
   if (pinned && path.basename(pinned) === 'config') {
     return path.dirname(path.dirname(pinned));
@@ -134,8 +174,10 @@ function describeTargets(forceWorkspace, paths) {
  * mistaken for a bug, hence the warning.
  */
 function dirtySettingsDocs() {
+  const shared = sharedConfigPath().toLowerCase();
   return vscode.workspace.textDocuments.filter((d) => {
     if (!d.isDirty) return false;
+    if (d.uri.scheme === 'file' && d.uri.fsPath.toLowerCase() === shared) return true;
     if (path.posix.basename(d.uri.path) !== 'settings.json') return false;
     // user settings open as vscode-userdata:, workspace settings as file:.../.vscode/
     return d.uri.scheme === 'vscode-userdata' || d.uri.path.includes('/.vscode/');
@@ -218,6 +260,9 @@ function refreshStatusBar() {
       '**Claude Combo** — click to pick a model + effort combo',
       '',
       `- Current: \`${cur.model || 'default'}\` · \`${cur.effortLevel || 'default'}\``,
+      `- Presets from: ${
+        sharedConfig().config ? `\`${sharedConfigPath()}\`` : '`claudeCombo.presets` (this window only)'
+      }`,
       `- Writes to: ${writesTo}`,
       '',
       'A pick applies to the **next** conversation. A running session still needs `/model` + `/effort`.',
@@ -311,24 +356,45 @@ async function pick(forceWorkspace) {
   }));
 
   const dirty = dirtySettingsDocs();
+  const broken = sharedConfig().error;
+  const warnings = [];
+  if (broken) {
+    warnings.push({
+      label: '$(error) Shared config is not valid JSON',
+      description: 'falling back to the claudeCombo.presets setting',
+      detail: `${sharedConfigPath()} — ${broken}`,
+      _action: 'edit',
+    });
+  }
   if (dirty.length) {
-    items.unshift(
-      {
-        label: '$(warning) Unsaved settings.json — press Ctrl+S there',
-        description: 'until it is saved, preset edits apply to THIS window only',
-        detail: `Select to save now: ${dirty.map((d) => d.uri.fsPath).join(', ')}`,
-        _action: 'saveSettings',
-      },
-      { label: '', kind: vscode.QuickPickItemKind.Separator }
-    );
+    warnings.push({
+      label: '$(warning) Unsaved changes — press Ctrl+S there',
+      description: 'until saved, the edit applies to THIS window only',
+      detail: `Select to save now: ${dirty.map((d) => d.uri.fsPath).join(', ')}`,
+      _action: 'saveSettings',
+    });
+  }
+  if (warnings.length) {
+    items.unshift(...warnings, { label: '', kind: vscode.QuickPickItemKind.Separator });
   }
 
+  const sharedExists = fs.existsSync(sharedConfigPath());
   items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
   items.push({
     label: '$(gear) Edit presets…',
-    detail: 'Open claudeCombo.presets in settings.json',
+    detail: sharedExists
+      ? `Open ${sharedConfigPath()} — shared by every window`
+      : 'Open claudeCombo.presets in settings.json',
     _action: 'edit',
   });
+  if (!sharedExists) {
+    items.push({
+      label: '$(link) Share these presets with every window…',
+      description: 'account switchers give each window its own VS Code settings',
+      detail: `Create ${sharedConfigPath()} from the current presets`,
+      _action: 'createShared',
+    });
+  }
   const target = activeTarget(false);
   const next = TARGETS[(TARGETS.indexOf(target) + 1) % TARGETS.length];
   items.push({
@@ -366,15 +432,41 @@ async function pick(forceWorkspace) {
     return pick(forceWorkspace);
   }
   if (picked._action === 'edit') return editPresets();
+  if (picked._action === 'createShared') return createSharedConfig();
   if (picked._action === 'toggleTarget') {
-    await cfg().update('applyTarget', next, vscode.ConfigurationTarget.Global);
+    // Whichever file is actually in charge is the one that has to change, or the toggle
+    // would appear to do nothing.
+    const shared = sharedConfig();
+    if (shared.config && typeof shared.config.applyTarget === 'string') {
+      try {
+        writeSettings(shared.path, { ...shared.config, applyTarget: next });
+      } catch (e) {
+        vscode.window.showErrorMessage(`Claude Combo: could not write ${shared.path} — ${e.message}`);
+        return;
+      }
+    } else {
+      await cfg().update('applyTarget', next, vscode.ConfigurationTarget.Global);
+    }
     refreshStatusBar();
     return pick(forceWorkspace);
   }
   if (picked._preset) return applyPreset(picked._preset, forceWorkspace);
 }
 
+async function openInEditor(p) {
+  const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(p));
+  await vscode.window.showTextDocument(doc);
+}
+
 async function editPresets() {
+  const p = sharedConfigPath();
+  if (fs.existsSync(p)) {
+    await openInEditor(p);
+    vscode.window.showInformationMessage(
+      `Claude Combo: press Ctrl+S when done — every window reads its presets from ${p}.`
+    );
+    return;
+  }
   await vscode.commands.executeCommand('workbench.action.openSettingsJson', {
     revealSetting: { key: 'claudeCombo.presets', edit: true },
   });
@@ -382,6 +474,28 @@ async function editPresets() {
   // buffer, so nothing looks wrong until another window shows a stale list.
   vscode.window.showInformationMessage(
     'Claude Combo: press Ctrl+S when done — an unsaved settings.json applies to this window only.'
+  );
+}
+
+/** Move the current presets out of the per-window VS Code settings into the shared file. */
+async function createSharedConfig() {
+  const p = sharedConfigPath();
+  if (fs.existsSync(p)) {
+    await openInEditor(p);
+    vscode.window.showInformationMessage(`Claude Combo: ${p} already exists — opened it.`);
+    return;
+  }
+  try {
+    writeSettings(p, { presets: presets(), applyTarget: activeTarget(false) });
+  } catch (e) {
+    vscode.window.showErrorMessage(`Claude Combo: could not write ${p} — ${e.message}`);
+    return;
+  }
+  watchFile(p);
+  refreshStatusBar();
+  await openInEditor(p);
+  vscode.window.showInformationMessage(
+    `Claude Combo: created ${p}. Every window now takes its presets from this one file, whichever VS Code settings it was launched with.`
   );
 }
 
@@ -402,6 +516,7 @@ function activate(context) {
     vscode.commands.registerCommand('claudeCombo.pick', () => pick(false)),
     vscode.commands.registerCommand('claudeCombo.pickForWorkspace', () => pick(true)),
     vscode.commands.registerCommand('claudeCombo.editPresets', editPresets),
+    vscode.commands.registerCommand('claudeCombo.createSharedConfig', createSharedConfig),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('claudeCombo')) refreshStatusBar();
     }),
@@ -412,6 +527,7 @@ function activate(context) {
 
   watchFile(USER_SETTINGS);
   watchFile(workspaceSettingsPath());
+  watchFile(sharedConfigPath());
   refreshStatusBar();
 }
 

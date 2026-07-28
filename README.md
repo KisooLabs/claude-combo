@@ -39,7 +39,7 @@ Nothing else — no Node, no git, no build.
 
 1. **Download the file.** Open the
    [latest release](https://github.com/kisoolabs/claude-combo/releases/latest) and click
-   `claude-combo-0.0.4.vsix` under **Assets** to download it. (Your browser may ask you to
+   `claude-combo-0.0.5.vsix` under **Assets** to download it. (Your browser may ask you to
    confirm the download — a `.vsix` is just a zip file VS Code knows how to open.)
 2. **Open the Extensions panel in VS Code.** Press `Ctrl+Shift+X`
    (`Cmd+Shift+X` on Mac).
@@ -95,6 +95,7 @@ variants. A running session still needs `/model` + `/effort`.
 ## Configuration
 
 ```jsonc
+"claudeCombo.sharedConfigFile": "",                 // "" = ~/.claude-combo/config.json
 "claudeCombo.presets": [
   { "label": "Fable · xhigh", "model": "fable",    "effort": "xhigh",  "detail": "judgment" },
   { "label": "Opus · high",   "model": "opus[1m]", "effort": "high",   "detail": "execution" },
@@ -114,12 +115,37 @@ variants. A running session still needs `/model` + `/effort`.
   untouched.
 - Order in the array is the order in the QuickPick. Edit via the QuickPick's
   "Edit presets…" entry or the `Claude Combo: Edit presets` command.
-- **Save the file (`Ctrl+S`) when you are done.** VS Code applies an unsaved `settings.json`
+- **Save the file (`Ctrl+S`) when you are done.** VS Code applies an unsaved settings file
   in the window you are editing in, so a new preset appears in *that* QuickPick while every
   other window still reads the old list off disk — it looks like the edit worked and
-  silently didn't. While a settings file is dirty the QuickPick carries a
-  `$(warning) Unsaved settings.json` row that saves it for you. This is a VS Code setting,
+  silently didn't. While a file is dirty the QuickPick carries a
+  `$(warning) Unsaved changes` row that saves it for you. This is a VS Code setting,
   independent of `applyTarget` below.
+
+### One preset list for every window
+
+`claudeCombo.presets` lives in VS Code's *user* settings — which is per window as soon as
+something launches VS Code with its own `--user-data-dir`. Account switchers do exactly
+that (claude-account-switcher gives each account slot a `vscode-ud` folder), so a preset
+added in one window is genuinely invisible in a window on another account. Same shape of
+trap as `CLAUDE_CONFIG_DIR`, one layer up.
+
+`claudeCombo.sharedConfigFile` is the way out: a plain JSON file that sits outside every
+user-data-dir, so all windows read the same one.
+
+```jsonc
+// ~/.claude-combo/config.json
+{
+  "presets": [ /* same shape as claudeCombo.presets */ ],
+  "applyTarget": "allSlots",   // optional
+  "slotsRoot": ""              // optional
+}
+```
+
+Run **Claude Combo: Share presets with every window** (also offered in the QuickPick) to
+create it from the presets you already have. From then on the file wins over the settings,
+"Edit presets…" opens *it*, and the apply-target toggle writes back to it. A bare array is
+accepted too, if all you want to share is the list.
 
 ### Apply target
 

@@ -2,7 +2,7 @@
   "name": "claude-combo",
   "displayName": "Claude Combo",
   "description": "Pick a Claude Code model + effort combo from a customizable QuickPick, and apply it to the next conversation.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "kisoo",
   "private": true,
   "license": "MIT",
@@ -34,6 +34,10 @@
       {
         "command": "claudeCombo.editPresets",
         "title": "Claude Combo: Edit presets"
+      },
+      {
+        "command": "claudeCombo.createSharedConfig",
+        "title": "Claude Combo: Share presets with every window"
       }
     ],
     "keybindings": [
@@ -48,7 +52,7 @@
       "properties": {
         "claudeCombo.presets": {
           "type": "array",
-          "markdownDescription": "Model + effort combos shown in the QuickPick. Edit freely — order here is the order shown.\n\n- `model`: any value `claude --model` accepts (`fable`, `opus`, `sonnet`, `opus[1m]`, or a full model id).\n- `effort`: `low` | `medium` | `high` | `xhigh`.\n- `detail`: optional note shown under the label.",
+          "markdownDescription": "Model + effort combos shown in the QuickPick. Edit freely — order here is the order shown.\n\n- `model`: any value `claude --model` accepts (`fable`, `opus`, `sonnet`, `opus[1m]`, or a full model id).\n- `effort`: `low` | `medium` | `high` | `xhigh`.\n- `detail`: optional note shown under the label.\n\nThis setting lives in **this window's** VS Code settings. If you use an account switcher, each window has its own — see `claudeCombo.sharedConfigFile`, which overrides this one from a single file.",
           "default": [
             {
               "label": "Fable · xhigh",
@@ -106,6 +110,11 @@
             },
             "additionalProperties": false
           }
+        },
+        "claudeCombo.sharedConfigFile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to a JSON file holding `presets` (and optionally `applyTarget` / `slotsRoot`) that **every** window reads, whatever VS Code settings it was launched with. Leave empty for the default `~/.claude-combo/config.json`.\n\nWhen the file exists its values win over the settings below. Needed because an account switcher launches each window with its own `--user-data-dir`, so `claudeCombo.presets` edited in one window is invisible to a window on another account. Run **Claude Combo: Share presets with every window** to create it from your current presets."
         },
         "claudeCombo.applyTarget": {
           "type": "string",
