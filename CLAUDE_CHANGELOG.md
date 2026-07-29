@@ -1,5 +1,7 @@
 # CLAUDE.md Changelog — Claude Combo Extension
 
+- 2026-07-28: § "Known limit" rewritten from the claude-code 2.1.220 bundle — the live-session change is `query.applyFlagSettings()` (a webview-only SDK control request), and the file write is mere persistence, so the CLI provably does not watch settings.json mid-session; `claudeProcessWrapper` moves from "unexplored hook" to closed (spawn-path only, duplicate-flag risk, and `scope: machine` = per slot). Also records that `activate()` returns no API.
+
 - 2026-07-28: § "VS Code settings are per window here too — `--user-data-dir`" added — the switcher gives each slot its own `vscode-ud`, so VS Code user settings diverge per account (extensions do not); records the two wrong diagnoses this caused, the "find the file the window actually uses" rule, and 0.0.5's shared-config answer. The unsaved-buffer trap is demoted to "real but wrongly blamed here".
 
 - 2026-07-28: § "Two silent-feedback traps" added — an unsaved settings.json applies only in its own window (mistaken for an extension bug twice, 0.0.4 warns + offers to save), and `workbench.statusBar.visible: false` on the owner's machine swallows `setStatusBarMessage`, so confirmations that matter must be notifications.

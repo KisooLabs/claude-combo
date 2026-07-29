@@ -22,13 +22,17 @@
 
 ## Inbox
 
-- (optional) `claudeCode.claudeProcessWrapper` experiment — could a wrapper inject
-  `--model` / `--effort` and thus fix a *running* session? Untested; see CLAUDE.md § Known limit.
 - (optional) `allSlots` writes a model into slots whose account may not have it. If that
   ever bites, the fix is per-slot preset filtering, not abandoning the fan-out.
 
 ## Done (recent)
 
+- 2026-07-28 `claudeProcessWrapper` question closed by reading the claude-code 2.1.220 bundle
+  (no experiment needed): the wrapper is spawn-path only, so it can never reach a running
+  session; the real live-change path is `query.applyFlagSettings()`, reachable only from
+  claude-code's own webview (no command, no `activate()` export). Corollary now verified
+  rather than assumed — the CLI does not watch settings.json mid-session, so a file write
+  alone cannot change a live conversation. CLAUDE.md § Known limit rewritten.
 - 2026-07-28 0.0.5: `claudeCombo.sharedConfigFile` — presets/applyTarget/slotsRoot read from
   one file outside every `--user-data-dir` (default `~/.claude-combo/config.json`), because
   the switcher gives each slot its own VS Code settings. `Share presets with every window`

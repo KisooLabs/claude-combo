@@ -121,17 +121,35 @@ single-file pick still uses the quiet channel.
 
 ## Known limit — do not try to "fix" it
 
-The picked combo applies only to a **new** conversation. `anthropic.claude-code`
-2.1.220 contributes no command or API for changing a live session's model or effort
-(verified against its `package.json`: config keys are `useTerminal`,
-`environmentVariables`, `claudeProcessWrapper`, …; commands are all open/new-conversation
-variants). If a future extension version adds one, that is the moment to revisit —
-re-check its `package.json` before assuming.
+The picked combo applies only to a **new** conversation. Read against
+`anthropic.claude-code` 2.1.220's own bundle on 2026-07-28, and the limit is structural,
+not an oversight:
 
-`claudeCode.claudeProcessWrapper` is the one unexplored hook (it names the executable
-used to launch Claude, so a wrapper script could inject `--model` / `--effort`). It is
-undocumented whether the extension appends its args to the wrapper. Untested; do not
-build on it without an experiment.
+- **The CLI does not watch `settings.json` mid-session.** The extension's own model picker
+  is `setModel(ch, m)` → `writeUserSettingsAndPush(ch, {model: m})`, which writes
+  `es()/settings.json` **and then** sends `await ch.query.applyFlagSettings(patch)` — an SDK
+  control request (`subtype: "apply_flag_settings"`) down the running query's stdio. That
+  second step is the one that changes the live session; the file write is only persistence.
+  So a file write alone — all Combo can do — can never reach a running conversation. (`es()`
+  is `CLAUDE_CONFIG_DIR || ~/.claude`, independently confirming the 0.0.2 fix.)
+- **Nothing exposes that control channel.** `set_model` / `apply_settings` /
+  `set_thinking_level` are cases in the **webview→host** message router, so only
+  claude-code's own webview can send them. Its 22 contributed commands are all
+  open/new-conversation/diff/focus/logout/plugin — none touches model, effort or settings.
+  And `activate()` returns nothing, so there is no `extension.exports` API (it *consumes*
+  `ms-python.python`'s `exports.environments`, so the omission is deliberate).
+
+`claudeCode.claudeProcessWrapper` was the last candidate and is **closed, not untested**.
+`resolveClaudeBinary()` does return `{pathToClaudeCodeExecutable: <wrapper>,
+executableArgs: [<node>, <resources/claude-code/cli.js>]}`, so a wrapper really does receive
+the whole argv and could rewrite it — but it is called only from the spawn path, so it
+cannot touch a process that is already running. Two further reasons not to bother: the SDK
+already appends `--model` / `--effort` itself when `options.model` / `options.effort` are
+set (duplicate-flag risk), and the setting is `"scope": "machine"`, i.e. per
+`--user-data-dir`, i.e. **per slot** — the exact trap 0.0.5 exists to work around.
+
+Revisit only if a future version adds a command, an `activate()` return, or a settings
+watcher — re-read the bundle, not just `package.json`, before assuming.
 
 ## Releases (the install path strangers use)
 
