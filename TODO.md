@@ -22,6 +22,13 @@
 
 ## Inbox
 
+- (optional) Does a **resumed** conversation pick up a new combo? Resume is a fresh spawn
+  (`Spawning Claude … resume: <id>`), so settings.json should apply — which would turn
+  "next conversation only" into "next turn, history intact". Untested: resume may prefer the
+  model stored in the session's own metadata. Test: pick a combo → `Claude Code: Reopen
+  Closed Session` → see which model it starts on. If true, README/INSTALL § known limit change.
+- (optional) The native model picker writes the *same* `es()/settings.json`, so it and Combo
+  overwrite each other in a slot (last writer wins). Only worth acting on if it confuses.
 - (optional) `allSlots` writes a model into slots whose account may not have it. If that
   ever bites, the fix is per-slot preset filtering, not abandoning the fan-out.
 
